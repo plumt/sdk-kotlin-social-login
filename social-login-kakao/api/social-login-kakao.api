@@ -1,0 +1,21 @@
+public final class net/plumt/sociallogin/kakao/KakaoLogin {
+	public static final field INSTANCE Lnet/plumt/sociallogin/kakao/KakaoLogin;
+	public static final field PROVIDER_ID Lnet/plumt/sociallogin/ProviderId;
+	public static final fun provider (Landroid/content/Context;Lnet/plumt/sociallogin/kakao/KakaoLoginConfig;)Lnet/plumt/sociallogin/SocialLoginProvider;
+}
+
+public final class net/plumt/sociallogin/kakao/KakaoLoginConfig {
+	public static final field Companion Lnet/plumt/sociallogin/kakao/KakaoLoginConfig$Companion;
+	public static final field MAX_KEY_LENGTH I
+	public fun <init> (Ljava/lang/String;Z)V
+	public synthetic fun <init> (Ljava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNativeAppKey ()Ljava/lang/String;
+	public final fun getUseKakaoTalk ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class net/plumt/sociallogin/kakao/KakaoLoginConfig$Companion {
+}
+

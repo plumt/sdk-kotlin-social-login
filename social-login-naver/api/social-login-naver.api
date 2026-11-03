@@ -1,0 +1,22 @@
+public final class net/plumt/sociallogin/naver/NaverLogin {
+	public static final field INSTANCE Lnet/plumt/sociallogin/naver/NaverLogin;
+	public static final field PROVIDER_ID Lnet/plumt/sociallogin/ProviderId;
+	public static final fun provider (Landroid/content/Context;Lnet/plumt/sociallogin/naver/NaverLoginConfig;)Lnet/plumt/sociallogin/SocialLoginProvider;
+}
+
+public final class net/plumt/sociallogin/naver/NaverLoginConfig {
+	public static final field Companion Lnet/plumt/sociallogin/naver/NaverLoginConfig$Companion;
+	public static final field MAX_CREDENTIAL_LENGTH I
+	public static final field MAX_NAME_LENGTH I
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getClientId ()Ljava/lang/String;
+	public final fun getClientName ()Ljava/lang/String;
+	public final fun getClientSecret ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class net/plumt/sociallogin/naver/NaverLoginConfig$Companion {
+}
+

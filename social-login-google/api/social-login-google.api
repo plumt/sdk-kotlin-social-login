@@ -1,0 +1,32 @@
+public final class net/plumt/sociallogin/google/GoogleLogin {
+	public static final field INSTANCE Lnet/plumt/sociallogin/google/GoogleLogin;
+	public static final field PROVIDER_ID Lnet/plumt/sociallogin/ProviderId;
+	public static final fun provider (Landroid/content/Context;Lnet/plumt/sociallogin/google/GoogleLoginConfig;)Lnet/plumt/sociallogin/SocialLoginProvider;
+}
+
+public final class net/plumt/sociallogin/google/GoogleLoginConfig {
+	public static final field CLIENT_ID_SUFFIX Ljava/lang/String;
+	public static final field Companion Lnet/plumt/sociallogin/google/GoogleLoginConfig$Companion;
+	public static final field MAX_CLIENT_ID_LENGTH I
+	public fun <init> (Ljava/lang/String;Lnet/plumt/sociallogin/google/GoogleSignInMode;ZZ)V
+	public synthetic fun <init> (Ljava/lang/String;Lnet/plumt/sociallogin/google/GoogleSignInMode;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAutoSelectEnabled ()Z
+	public final fun getFilterByAuthorizedAccounts ()Z
+	public final fun getMode ()Lnet/plumt/sociallogin/google/GoogleSignInMode;
+	public final fun getServerClientId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class net/plumt/sociallogin/google/GoogleLoginConfig$Companion {
+}
+
+public final class net/plumt/sociallogin/google/GoogleSignInMode : java/lang/Enum {
+	public static final field BOTTOM_SHEET Lnet/plumt/sociallogin/google/GoogleSignInMode;
+	public static final field BUTTON Lnet/plumt/sociallogin/google/GoogleSignInMode;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lnet/plumt/sociallogin/google/GoogleSignInMode;
+	public static fun values ()[Lnet/plumt/sociallogin/google/GoogleSignInMode;
+}
+

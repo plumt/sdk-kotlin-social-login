@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  카카오 로그인 리다이렉트를 받는 AuthCodeHandlerActivity 는 앱 키가 스킴(kakao{NATIVE_APP_KEY})에 들어가므로
+  이 라이브러리가 선언하지 않는다. 앱 매니페스트에 manifestPlaceholders 로 선언한다 — README 참고.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+</manifest>
