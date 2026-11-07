@@ -13,6 +13,7 @@ public final class net/plumt/sociallogin/kakao/KakaoLoginConfig {
 	public final fun getNativeAppKey ()Ljava/lang/String;
 	public final fun getUseKakaoTalk ()Z
 	public fun hashCode ()I
+	public final fun isConfigured ()Z
 	public fun toString ()Ljava/lang/String;
 }
 

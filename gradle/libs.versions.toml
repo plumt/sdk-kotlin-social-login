@@ -9,6 +9,7 @@ kakao-sdk = "2.20.6"
 naver-oauth = "5.10.0"
 androidx-credentials = "1.5.0"
 googleid = "1.1.1"
+play-services-auth = "21.3.0"
 junit = "4.13.2"
 robolectric = "4.14.1"
 androidx-test-core = "1.6.1"
@@ -21,12 +22,14 @@ kakao-user = { module = "com.kakao.sdk:v2-user", version.ref = "kakao-sdk" }
 naver-oauth = { module = "com.navercorp.nid:oauth", version.ref = "naver-oauth" }
 androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "androidx-credentials" }
 androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "androidx-credentials" }
+play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "play-services-auth" }
 googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
 junit = { module = "junit:junit", version.ref = "junit" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 androidx-test-core = { module = "androidx.test:core", version.ref = "androidx-test-core" }
 
 [plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "agp" }

@@ -82,6 +82,17 @@ internal class FakeNaverGateway(private val store: FakeNaverStore = FakeNaverSto
         deleteToken.invoke()
     }
 
+    var restore: (NaverStoredToken) -> Unit = {
+        store.access = it.accessToken
+        store.refresh = it.refreshToken
+        store.expiresAtSeconds = it.expiresAtSeconds
+    }
+
+    override fun restoreToken(token: NaverStoredToken) {
+        calls += "restore"
+        restore.invoke(token)
+    }
+
     override suspend fun refreshAccessToken() {
         calls += "refresh"
         refresh.invoke()
@@ -134,12 +145,18 @@ class NaverLoginProviderTest {
     }
 
     @Test
+    fun `로그인 동의 화면의 취소(SERVER_ERROR_ACCESS_DENIED)는 Cancelled`() = runTest(dispatcher) {
+        gateway.authenticate = { throw NaverSdkException(NidOAuthErrorCode.SERVER_ERROR_ACCESS_DENIED, null, -1) }
+        assertSame(SocialLoginResult.Cancelled, provider().signIn(activity, SignInOptions.DEFAULT))
+    }
+
+    @Test
     fun `SDK 실패는 오류 코드로 분류한다`() = runTest(dispatcher) {
-        val error = NaverSdkException(NidOAuthErrorCode.SERVER_ERROR_ACCESS_DENIED, 403, null)
+        val error = NaverSdkException(NidOAuthErrorCode.SERVER_ERROR_INVALID_SCOPE, 400, null)
         gateway.authenticate = { throw error }
         val f = provider().signIn(activity, SignInOptions.DEFAULT).failure()
-        assertEquals(FailureKind.ACCESS_DENIED, f.kind)
-        assertEquals("SERVER_ERROR_ACCESS_DENIED(HTTP 403)", f.vendorCode)
+        assertEquals(FailureKind.CONFIGURATION, f.kind)
+        assertEquals("SERVER_ERROR_INVALID_SCOPE(HTTP 400)", f.vendorCode)
         assertSame(error, f.cause)
         gateway.authenticate = { throw IOException() }
         assertEquals(FailureKind.NETWORK, provider().signIn(activity, SignInOptions.DEFAULT).failure().kind)

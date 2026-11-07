@@ -1,6 +1,7 @@
 package net.plumt.sociallogin.google
 
 import android.app.Activity
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.credentials.Credential
@@ -29,6 +30,8 @@ import net.plumt.sociallogin.google.internal.GoogleCredentials
 import net.plumt.sociallogin.google.internal.GoogleGateway
 import net.plumt.sociallogin.google.internal.GoogleLoginProvider
 import net.plumt.sociallogin.google.internal.GoogleOptions
+import net.plumt.sociallogin.google.internal.GoogleSignInHostResult
+import net.plumt.sociallogin.google.internal.LegacyGoogleAccount
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -82,7 +85,52 @@ internal class FakeGoogleGateway : GoogleGateway {
         calls += "clear"
         clear()
     }
+
+    // 기본 모드(Google Sign-In)
+    val legacyClientIds = mutableListOf<String>()
+    var hostResult: suspend () -> GoogleSignInHostResult = {
+        GoogleSignInHostResult.ActivityResult(Activity.RESULT_OK, Intent("test.RESULT"))
+    }
+    var legacyAccount: (Intent) -> LegacyGoogleAccount = { legacyAccount() }
+    var legacySignOut: suspend () -> Unit = {}
+    var revoke: suspend () -> Unit = {}
+
+    override fun legacySignInIntent(activity: Activity, serverClientId: String): Intent {
+        calls += "legacyIntent"
+        legacyClientIds += serverClientId
+        return Intent("test.GOOGLE_SIGN_IN")
+    }
+
+    override suspend fun launchHost(activity: Activity, intent: Intent): GoogleSignInHostResult {
+        calls += "host"
+        interceptor = currentCoroutineContext()[ContinuationInterceptor]
+        return hostResult()
+    }
+
+    override fun legacyAccountFrom(data: Intent): LegacyGoogleAccount {
+        calls += "parse"
+        return legacyAccount(data)
+    }
+
+    override suspend fun legacySignOut(serverClientId: String) {
+        calls += "legacySignOut"
+        legacyClientIds += serverClientId
+        legacySignOut.invoke()
+    }
+
+    override suspend fun legacyRevokeAccess(serverClientId: String) {
+        calls += "revoke"
+        legacyClientIds += serverClientId
+        revoke.invoke()
+    }
 }
+
+internal fun legacyAccount(
+    idToken: String? = "legacy.id.token",
+    email: String? = "person@example.com",
+    displayName: String? = "홍길동",
+    photoUrl: String? = "https://img.example.com/p.png",
+) = LegacyGoogleAccount(idToken, email, displayName, photoUrl)
 
 @RunWith(RobolectricTestRunner::class)
 class GoogleLoginProviderTest {
@@ -91,7 +139,7 @@ class GoogleLoginProviderTest {
     private val gateway = FakeGoogleGateway()
     private val dispatcher = UnconfinedTestDispatcher()
 
-    private fun provider(config: GoogleLoginConfig = GoogleLoginConfig(CLIENT_ID)) =
+    private fun provider(config: GoogleLoginConfig = GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET)) =
         GoogleLoginProvider(config, gateway, dispatcher)
 
     private fun SocialLoginResult<*>.failure() = this as SocialLoginResult.Failure
@@ -172,7 +220,8 @@ class GoogleLoginProviderTest {
     @Test
     fun `로그아웃은 자격 증명 상태를 지운다, 실패는 분류한다`() = runTest(dispatcher) {
         assertEquals(SocialLoginResult.Success(Unit), provider().signOut())
-        assertEquals(listOf("clear"), gateway.calls)
+        // Credential Manager 모드는 자격 증명 상태를 지우고, Google Sign-In 상태도 보조로 지운다(0.0.2)
+        assertEquals(listOf("clear", "legacySignOut"), gateway.calls)
         gateway.clear = { throw ClearCredentialUnknownException("x") }
         val f = provider().signOut().failure()
         assertEquals(FailureKind.UNKNOWN, f.kind)
@@ -186,6 +235,7 @@ class GoogleLoginProviderTest {
         assertTrue(u.message.contains("철회"))
         val r = provider().refreshToken().failure()
         assertEquals(FailureKind.UNSUPPORTED, r.kind)
+        assertTrue(provider(GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BUTTON)).unlink() is SocialLoginResult.Failure)
         assertTrue(gateway.calls.isEmpty())
     }
 
@@ -220,7 +270,7 @@ class GoogleLoginProviderTest {
     @Test
     fun `프로세스 재시작 — 새 Provider 도 같은 설정으로 로그인한다`() = runTest(dispatcher) {
         provider().signIn(activity, SignInOptions.DEFAULT)
-        val restarted = GoogleLoginProvider(GoogleLoginConfig(CLIENT_ID), gateway, dispatcher)
+        val restarted = GoogleLoginProvider(GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET), gateway, dispatcher)
         assertTrue(restarted.signIn(activity, SignInOptions.DEFAULT) is SocialLoginResult.Success)
         assertEquals(2, gateway.options.size)
     }
@@ -259,12 +309,12 @@ class GoogleCredentialsTest {
     @Test
     fun `옵션 — 시트 선택지와 nonce`() {
         val sheet = GoogleOptions.build(
-            GoogleLoginConfig(CLIENT_ID, filterByAuthorizedAccounts = true, autoSelectEnabled = true), "n",
+            GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET, filterByAuthorizedAccounts = true, autoSelectEnabled = true), "n",
         ) as GetGoogleIdOption
         assertTrue(sheet.filterByAuthorizedAccounts)
         assertTrue(sheet.autoSelectEnabled)
         assertEquals("n", sheet.nonce)
-        val plain = GoogleOptions.build(GoogleLoginConfig(CLIENT_ID), null) as GetGoogleIdOption
+        val plain = GoogleOptions.build(GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET), null) as GetGoogleIdOption
         assertFalse(plain.filterByAuthorizedAccounts)
         assertFalse(plain.autoSelectEnabled)
         assertNull(plain.nonce)

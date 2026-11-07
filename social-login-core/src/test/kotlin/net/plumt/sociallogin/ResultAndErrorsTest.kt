@@ -112,10 +112,10 @@ class SocialLoginResultTest {
     fun `FailureKind 재시도 가능 집합이 정확하다`() {
         val retryable = FailureKind.entries.filter { it.retryable }.toSet()
         assertEquals(
-            setOf(FailureKind.NETWORK, FailureKind.PROVIDER_SERVER, FailureKind.INTERRUPTED, FailureKind.BUSY),
+            setOf(FailureKind.NETWORK, FailureKind.PROVIDER_SERVER, FailureKind.INTERRUPTED, FailureKind.BUSY, FailureKind.TIMEOUT),
             retryable,
         )
-        assertEquals(12, FailureKind.entries.size)
+        assertEquals(13, FailureKind.entries.size)
     }
 
     @Test

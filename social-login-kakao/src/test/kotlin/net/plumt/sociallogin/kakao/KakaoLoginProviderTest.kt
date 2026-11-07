@@ -99,8 +99,17 @@ class KakaoLoginProviderTest {
     }
 
     @Test
+    fun `카카오톡 동의 화면에서 취소하면 웹으로 넘어가지 않고 Cancelled`() = runTest(dispatcher) {
+        gateway.talk = { throw AuthError(400, AuthErrorCause.AccessDenied, AuthErrorResponse("access_denied", null)) }
+        assertSame(SocialLoginResult.Cancelled, provider().signIn(activity, SignInOptions.DEFAULT))
+        assertEquals(listOf("init:abc123", "available", "talk"), gateway.calls)
+    }
+
+    @Test
     fun `카카오톡 로그인이 취소 말고 실패하면 웹으로 넘어가고 nonce 를 그대로 쓴다`() = runTest(dispatcher) {
-        gateway.talk = { throw AuthError(400, AuthErrorCause.AccessDenied, AuthErrorResponse("e", null)) }
+        gateway.talk = { throw AuthError(400, AuthErrorCause.InvalidRequest, AuthErrorResponse("e", null)) }
+        // nonce 를 넘기면 ID 토큰이 와야 성공이다(0.0.2, OIDC)
+        gateway.web = { oauthToken(access = "web", idToken = "idt") }
         val account = (provider().signIn(activity, SignInOptions("n2")) as SocialLoginResult.Success).value
         assertEquals("web", account.token.accessToken)
         assertEquals(listOf("init:abc123", "available", "talk", "web"), gateway.calls)

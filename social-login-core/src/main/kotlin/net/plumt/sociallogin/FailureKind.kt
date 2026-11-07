@@ -44,4 +44,10 @@ public enum class FailureKind(public val retryable: Boolean) {
 
     /** 위 어디에도 들지 않는다. [SocialLoginResult.Failure.cause] 를 본다. */
     UNKNOWN(false),
+
+    /**
+     * [SocialLoginManager.Builder.callTimeoutMillis] 로 정한 시간 안에 호출이 끝나지 않아 중단했다(0.0.2).
+     * 벤더 SDK 화면은 남아 있을 수 있다. 망 시간 초과는 [NETWORK] 다.
+     */
+    TIMEOUT(true),
 }

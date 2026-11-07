@@ -2,6 +2,7 @@ package net.plumt.sociallogin.internal
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import net.plumt.sociallogin.Capability
 import net.plumt.sociallogin.ConcurrencyPolicy
 import net.plumt.sociallogin.FailureKind
@@ -18,6 +19,7 @@ import kotlin.coroutines.cancellation.CancellationException
 internal class DefaultSocialLoginManager<H>(
     private val providers: Map<ProviderId, SocialLoginProvider<H>>,
     private val policy: ConcurrencyPolicy,
+    private val callTimeoutMillis: Long? = null,
 ) : SocialLoginManager<H> {
 
     private val mutex = Mutex()
@@ -97,7 +99,18 @@ internal class DefaultSocialLoginManager<H>(
         block: suspend (SocialLoginProvider<H>) -> SocialLoginResult<T>,
     ): SocialLoginResult<T> {
         val result = try {
-            block(provider)
+            if (callTimeoutMillis == null) {
+                block(provider)
+            } else {
+                // 상한을 넘으면 Provider 코루틴을 취소한다. 잠금은 호출부의 finally 가 푼다
+                withTimeoutOrNull(callTimeoutMillis) { block(provider) }
+                    ?: return SocialLoginResult.Failure(
+                        kind = FailureKind.TIMEOUT,
+                        message = "Provider ${providerId.value} 의 $operation 이 ${callTimeoutMillis}ms 안에 끝나지 않아 " +
+                            "중단했다. 이미 뜬 벤더 SDK 화면은 남아 있을 수 있다",
+                        providerId = providerId,
+                    )
+            }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {

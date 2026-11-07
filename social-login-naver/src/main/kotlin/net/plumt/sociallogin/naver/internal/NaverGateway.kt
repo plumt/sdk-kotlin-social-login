@@ -39,7 +39,13 @@ internal interface NaverGateway {
 
     fun logout()
 
+    /**
+     * 네이버 서버의 토큰을 지운다. **SDK 는 서버 응답을 보기 전에 기기 토큰부터 지운다** — 실패해도 기기 토큰이 없다.
+     */
     suspend fun deleteToken()
+
+    /** [deleteToken] 이 실패하며 지운 기기 토큰을 되돌린다. SDK 가 지원하지 않으면 [IllegalStateException]. */
+    fun restoreToken(token: NaverStoredToken)
 
     suspend fun refreshAccessToken()
 }

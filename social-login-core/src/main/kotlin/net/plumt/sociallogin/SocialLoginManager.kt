@@ -25,6 +25,9 @@ import net.plumt.sociallogin.internal.DefaultSocialLoginManager
  * - 동시 호출은 [ConcurrencyPolicy] 로 정한다. 기본은 [ConcurrencyPolicy.REJECT] — 진행 중인 호출이 있으면
  *   새 호출을 [FailureKind.BUSY] 로 바로 끝낸다. 로그인 버튼을 두 번 눌러 로그인 화면이 두 번 뜨는 것을 막는다.
  * - 스레드를 바꾸지 않는다. 어느 스레드에서 불러도 되고, 화면이 필요한 SDK 호출의 스레드 전환은 Provider 가 한다.
+ * - 벤더 SDK 가 콜백을 주지 않는 경우에 대비해 [Builder.callTimeoutMillis] 로 호출 시간 상한을 둘 수 있다.
+ * - 화면 회전에 살아남는 스코프(`viewModelScope` 등)로 부른다. `lifecycleScope` 로 부르고 회전하면 코루틴만 취소되고
+ *   벤더 SDK 는 로그인을 끝내 토큰을 저장할 수 있다 — 앱은 로그아웃 상태로, SDK 는 로그인 상태로 갈라진다.
  * - 상태가 없고 스레드 안전하다. 앱에 하나만 두고 공유한다.
  *
  * @param H 로그인 화면을 붙일 호스트 타입. Android 에서는 `android.app.Activity`.
@@ -60,6 +63,7 @@ public interface SocialLoginManager<in H> {
     public class Builder<H> internal constructor() {
         private val providers = LinkedHashMap<ProviderId, SocialLoginProvider<H>>()
         private var policy: ConcurrencyPolicy = ConcurrencyPolicy.REJECT
+        private var callTimeoutMillis: Long? = null
 
         /**
          * [provider] 를 등록한다.
@@ -81,8 +85,24 @@ public interface SocialLoginManager<in H> {
             return this
         }
 
+        /**
+         * Provider 호출 하나의 시간 상한(밀리초). 넘으면 Provider 코루틴을 취소하고 [FailureKind.TIMEOUT] 으로 끝내
+         * 잠금을 푼다. 벤더 SDK 가 콜백을 주지 않아 [FailureKind.BUSY] 가 계속되는 것을 막는다. 기본은 상한 없음.
+         *
+         * 사용자가 계정을 추가하거나 2단계 인증을 거치는 시간까지 넉넉히 잡는다(예: 5분). 시간이 지나도 이미 뜬
+         * 벤더 SDK 화면은 닫히지 않는다. [ConcurrencyPolicy.SERIALIZE] 에서 차례를 기다리는 시간은 넣지 않는다.
+         *
+         * @throws IllegalArgumentException [timeoutMillis] 가 0 이하일 때.
+         */
+        public fun callTimeoutMillis(timeoutMillis: Long): Builder<H> {
+            require(timeoutMillis > 0) { "callTimeoutMillis 는 1 이상이어야 한다: 받은 값 $timeoutMillis" }
+            this.callTimeoutMillis = timeoutMillis
+            return this
+        }
+
         /** 조립을 끝낸다. Provider 가 하나도 없어도 된다(모든 호출이 [FailureKind.PROVIDER_NOT_REGISTERED]). */
-        public fun build(): SocialLoginManager<H> = DefaultSocialLoginManager(LinkedHashMap(providers), policy)
+        public fun build(): SocialLoginManager<H> =
+            DefaultSocialLoginManager(LinkedHashMap(providers), policy, callTimeoutMillis)
     }
 
     public companion object {

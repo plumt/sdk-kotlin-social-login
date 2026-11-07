@@ -43,19 +43,57 @@ internal class NaverLoginProvider(
         }
     }
 
-    /** 이 기기에 저장된 토큰만 지운다. 네이버 서버의 연동은 남는다([unlink] 와 다르다). */
+    /**
+     * 이 기기에 저장된 토큰만 지운다. 네이버 서버의 연동은 남는다([unlink] 와 다르다).
+     * 브라우저(커스텀 탭)의 네이버 로그인 세션도 남아, 다음 로그인이 입력 화면 없이 같은 계정으로 끝날 수 있다.
+     */
     override suspend fun signOut(): SocialLoginResult<Unit> = call("signOut") {
         gateway.logout()
         SocialLoginResult.Success(Unit)
     }
 
+    /**
+     * 네이버 서버의 토큰을 지워 연동을 끊는다.
+     *
+     * 네이버 SDK 는 서버 응답을 보기 전에 기기 토큰부터 지운다. 그대로 두면 망 오류로 실패한 뒤의 재시도가 저장 토큰이 없어
+     * [FailureKind.NOT_SIGNED_IN] 으로 끝나고 서버 연동은 영구히 남는다. 그래서 다시 시도해 볼 만한 실패
+     * ([FailureKind.retryable])면 지워진 기기 토큰을 되돌린다 — 다음 호출이 서버를 다시 부른다. 그 밖의 실패는 SDK 동작대로
+     * 기기 토큰이 지워진 채로 둔다. 호출 코루틴이 취소되면 SDK 요청은 계속 진행되므로 되돌리지 않는다.
+     */
     override suspend fun unlink(): SocialLoginResult<Unit> = call("unlink") {
         val stored = gateway.storedToken()
         if (stored.accessToken.isNullOrBlank() && stored.refreshToken.isNullOrBlank()) {
             return@call notSignedIn("unlink")
         }
-        gateway.deleteToken()
+        try {
+            gateway.deleteToken()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            return@call unlinkFailure(e, stored)
+        }
         SocialLoginResult.Success(Unit)
+    }
+
+    private fun unlinkFailure(error: Exception, stored: NaverStoredToken): SocialLoginResult<Unit> {
+        val result = NaverErrors.toResult(error, "unlink")
+        if (result !is SocialLoginResult.Failure || !result.kind.retryable) return result
+        val now = gateway.storedToken()
+        if (!now.accessToken.isNullOrBlank() || !now.refreshToken.isNullOrBlank()) return result
+        val note = try {
+            gateway.restoreToken(stored)
+            "기기 토큰을 되돌렸다 — 다시 시도하면 네이버 서버를 다시 부른다"
+        } catch (e: Exception) {
+            error.addSuppressed(e)
+            "기기 토큰을 되돌리지 못했다 — 다시 로그인한 뒤 연결 해제를 다시 부른다"
+        }
+        return SocialLoginResult.Failure(
+            kind = result.kind,
+            message = "${result.message}. $note",
+            providerId = result.providerId,
+            vendorCode = result.vendorCode,
+            cause = result.cause,
+        )
     }
 
     override suspend fun refreshToken(): SocialLoginResult<SocialToken> = call("refreshToken") {
@@ -68,6 +106,13 @@ internal class NaverLoginProvider(
     private fun currentToken(): SocialToken? = toSocialToken(gateway.storedToken())
 
     private suspend fun <T> call(operation: String, block: suspend () -> SocialLoginResult<T>): SocialLoginResult<T> {
+        if (!config.isConfigured) {
+            return SocialLoginResult.Failure(
+                kind = FailureKind.CONFIGURATION,
+                message = "네이버 $operation: clientId·clientSecret·clientName 중 빈 값이 있다(설정 안 됨). SDK 를 부르지 않았다",
+                providerId = id,
+            )
+        }
         try {
             gateway.initialize(config)
         } catch (e: CancellationException) {

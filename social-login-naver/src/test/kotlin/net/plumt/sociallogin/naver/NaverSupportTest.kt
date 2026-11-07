@@ -122,7 +122,10 @@ class NaverErrorsTest {
     @Test
     fun `toResult — 취소, 코드, 원인 보존, 오류 번호 표기`() {
         assertSame(SocialLoginResult.Cancelled, NaverErrors.toResult(NaverSdkException(CLIENT_USER_CANCEL, null, 1), "signIn"))
-        NidOAuthErrorCode.entries.filter { it != CLIENT_USER_CANCEL }.forEach { code ->
+        // 로그인 동의 화면의 "취소"는 access_denied 로 온다 — 로그인에서만 취소, 다른 동작에서는 실패
+        assertSame(SocialLoginResult.Cancelled, NaverErrors.toResult(NaverSdkException(SERVER_ERROR_ACCESS_DENIED, null, -1), "signIn"))
+        assertEquals(FailureKind.ACCESS_DENIED, (NaverErrors.toResult(NaverSdkException(SERVER_ERROR_ACCESS_DENIED, null, -1), "unlink") as SocialLoginResult.Failure).kind)
+        NidOAuthErrorCode.entries.filter { it != CLIENT_USER_CANCEL && it != SERVER_ERROR_ACCESS_DENIED }.forEach { code ->
             val e = NaverSdkException(code, null, 7)
             val f = NaverErrors.toResult(e, "signIn") as SocialLoginResult.Failure
             assertEquals(table[code], f.kind)
@@ -169,6 +172,7 @@ class NaverCallbacksTest {
 
     @Test
     fun `onSuccess 는 재개하고 늦은 콜백은 버린다`() = runTest {
+        // 콜백을 만들 때 한 번 읽는다(onFailure 때 코드가 바뀌었는지 보려고). 성공·늦은 콜백은 더 읽지 않는다
         var lastCodeReads = 0
         suspendCancellableCoroutine { cont ->
             val cb = naverCallback(cont) { lastCodeReads++; NONE }
@@ -177,14 +181,17 @@ class NaverCallbacksTest {
             cb.onError(1, "late")
             cb.onSuccess()
         }
-        assertEquals(0, lastCodeReads)
+        assertEquals(1, lastCodeReads)
     }
 
     @Test
-    fun `onFailure 는 HTTP 상태와 마지막 오류 코드로 재개한다`() = runTest {
+    fun `onFailure 는 HTTP 상태와 새로 쓰인 마지막 오류 코드로 재개한다`() = runTest {
+        var code = NONE
         val e = runCatching {
             suspendCancellableCoroutine<Unit> { cont ->
-                naverCallback(cont) { SERVER_ERROR_SERVER_ERROR }.onFailure(503, "서버 문구")
+                val cb = naverCallback(cont) { code }
+                code = SERVER_ERROR_SERVER_ERROR
+                cb.onFailure(503, "서버 문구")
             }
         }.exceptionOrNull() as NaverSdkException
         assertEquals(SERVER_ERROR_SERVER_ERROR, e.code)
@@ -234,7 +241,8 @@ class NaverLoginConfigTest {
 
     @Test
     fun `틀린 값은 길이만 알리고 거절`() {
-        listOf("", " a", "a b", "a".repeat(129)).forEach { bad ->
+        // 빈 값·공백뿐인 값은 "설정 안 됨" 으로 받는다(0.0.2) — NaverRegressionTest
+        listOf(" a", "a b", "a".repeat(129)).forEach { bad ->
             val e1 = assertThrows(IllegalArgumentException::class.java) { NaverLoginConfig(bad, "s", "n") }
             assertTrue(e1.message!!.startsWith("clientId"))
             assertTrue(e1.message!!.contains("받은 길이 ${bad.length}"))
@@ -242,7 +250,7 @@ class NaverLoginConfigTest {
             assertTrue(e2.message!!.startsWith("clientSecret"))
             if (bad.isNotBlank()) assertFalse(e2.message!!.contains(bad))
         }
-        listOf("", " ", "n".repeat(101)).forEach { bad ->
+        listOf("n".repeat(101)).forEach { bad ->
             val e = assertThrows(IllegalArgumentException::class.java) { NaverLoginConfig("i", "s", bad) }
             assertTrue(e.message!!.startsWith("clientName"))
         }

@@ -16,4 +16,7 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
       # build 가 apiCheck 를 포함한다 — 공개 API 가 .api 와 다르면 실패한다
+      # build 가 :sample:check 도 돌린다 — 수단 조합 전부의 R8 전체 모드 빌드와 dex 의 Retrofit 시그니처·생성자(기기 불필요)
       - run: ./gradlew build
+      # 네이버만 쓰는 앱이 OkHttp 를 4.9 대로 올리면 참조하는 선택 TLS 제공자가 늘어난다
+      - run: ./gradlew :sample:verifyNaverReleaseR8 -PokhttpCompatVersion=4.9.2

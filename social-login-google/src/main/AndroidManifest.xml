@@ -2,4 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <application>
+        <!-- 기본 모드(LEGACY_GOOGLE_SIGN_IN)의 계정 선택 화면을 띄우고 결과를 받는 투명 호스트. 앱이 직접 띄우지 않는다 -->
+        <activity
+            android:name=".internal.GoogleSignInHostActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:theme="@style/SocialLoginGoogleHostTheme" />
+    </application>
 </manifest>

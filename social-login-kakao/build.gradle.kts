@@ -78,4 +78,9 @@ kover {
     }
 }
 
+// 테스트 코드만 코루틴 테스트 API(ExperimentalCoroutinesApi)를 쓴다. 본 코드에는 opt-in 을 걸지 않는다
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    if (name.contains("Test")) compilerOptions.optIn.add("kotlinx.coroutines.ExperimentalCoroutinesApi")
+}
+
 tasks.named("check") { dependsOn("koverVerify") }

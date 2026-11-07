@@ -12,7 +12,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        // Credential Manager 는 21 이지만 다른 수단(카카오 SDK v2)과 맞춰 23 으로 둔다
+        // Credential Manager·Google Sign-In 은 21 이지만 다른 수단(카카오 SDK v2)과 맞춰 23 으로 둔다
         minSdk = 23
         consumerProguardFiles("consumer-rules.pro")
     }
@@ -43,6 +43,8 @@ dependencies {
     // Android 13 이하에서 Credential Manager 가 Google Play 서비스로 동작하게 한다
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
+    // 기본 모드(LEGACY_GOOGLE_SIGN_IN)의 Google Sign-In 계정 선택. 타입은 공개 API 에 드러내지 않는다
+    implementation(libs.play.services.auth)
     implementation(libs.kotlinx.coroutines.android)
 
     testImplementation(libs.junit)
@@ -58,7 +60,7 @@ mavenPublishing {
     signAllPublications()
     pom {
         name.set("social-login-google")
-        description.set("Google 로그인 Provider — Credential Manager·Sign in with Google ID 토큰, nonce, 오류 분류 (비공식)")
+        description.set("Google 로그인 Provider — Google Sign-In 계정 선택(기본)·Credential Manager ID 토큰, 오류 분류 (비공식)")
         inceptionYear.set("2026")
     }
 }
@@ -67,8 +69,8 @@ kover {
     reports {
         filters {
             excludes {
-                // Credential Manager 직결 어댑터 — 실제 Google Play 서비스·계정·망이 필요해 단위 테스트가 불가능하다.
-                // 옵션 생성·자격 증명 해석·오류 분류는 가짜 게이트웨이로 따로 검증한다
+                // Credential Manager·Google Sign-In 직결 어댑터 — 실제 Google Play 서비스·계정·망이 필요해 단위 테스트가
+                // 불가능하다. 옵션 생성·결과 해석·오류 분류는 가짜 게이트웨이로, 호스트 Activity 는 Robolectric 으로 따로 검증한다
                 classes("net.plumt.sociallogin.google.internal.DefaultGoogleGateway*")
             }
         }
@@ -79,6 +81,11 @@ kover {
             }
         }
     }
+}
+
+// 테스트 코드만 코루틴 테스트 API(ExperimentalCoroutinesApi)를 쓴다. 본 코드에는 opt-in 을 걸지 않는다
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    if (name.contains("Test")) compilerOptions.optIn.add("kotlinx.coroutines.ExperimentalCoroutinesApi")
 }
 
 tasks.named("check") { dependsOn("koverVerify") }

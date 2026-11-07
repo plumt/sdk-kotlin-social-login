@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 계정 선택 화면을 띄우는 동안 아무것도 그리지 않는 호스트 Activity 의 테마 -->
+    <style name="SocialLoginGoogleHostTheme" parent="@android:style/Theme.Translucent.NoTitleBar" />
+</resources>

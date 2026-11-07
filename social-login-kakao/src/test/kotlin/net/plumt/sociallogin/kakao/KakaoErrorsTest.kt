@@ -120,8 +120,16 @@ class KakaoErrorsTest {
         assertSame(SocialLoginResult.Cancelled, KakaoErrors.toResult(ClientError(ClientErrorCause.Cancelled, "x"), "signIn"))
         assertTrue(KakaoErrors.isUserCancel(ClientError(ClientErrorCause.Cancelled, "x")))
         assertFalse(KakaoErrors.isUserCancel(ClientError(ClientErrorCause.Unknown, "x")))
-        assertFalse(KakaoErrors.isUserCancel(authError(AuthErrorCause.AccessDenied)))
+        assertTrue(KakaoErrors.isUserCancel(authError(AuthErrorCause.AccessDenied)))
+        assertFalse(KakaoErrors.isUserCancel(authError(AuthErrorCause.Misconfigured)))
         assertFalse(KakaoErrors.isUserCancel(RuntimeException()))
+    }
+
+    @Test
+    fun `로그인 동의 화면의 취소(AccessDenied)는 Cancelled, 다른 동작에서는 실패`() {
+        assertSame(SocialLoginResult.Cancelled, KakaoErrors.toResult(authError(AuthErrorCause.AccessDenied), "signIn"))
+        val f = KakaoErrors.toResult(authError(AuthErrorCause.AccessDenied), "unlink") as SocialLoginResult.Failure
+        assertEquals(ACCESS_DENIED, f.kind)
     }
 
     @Test

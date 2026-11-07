@@ -45,7 +45,8 @@ class KakaoLoginConfigTest {
 
     @Test
     fun `틀린 키는 길이만 알리고 거절`() {
-        listOf("", " ", "abc def", "키값", "abc-123", "abc\n", "a".repeat(129), "YOUR_KAKAO_NATIVE_APP_KEY").forEach { bad ->
+        // 빈 키·공백뿐인 키는 "설정 안 됨" 으로 받는다(0.0.2) — KakaoRegressionTest
+        listOf("abc def", "키값", "abc-123", "abc\n", "a".repeat(129), "YOUR_KAKAO_NATIVE_APP_KEY").forEach { bad ->
             val e = assertThrows(IllegalArgumentException::class.java) { KakaoLoginConfig(bad) }
             assertTrue(e.message!!.contains("받은 길이 ${bad.length}"))
             if (bad.isNotBlank()) assertFalse(e.message!!.contains(bad))

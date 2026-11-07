@@ -9,21 +9,23 @@ import net.plumt.sociallogin.google.internal.DefaultGoogleGateway
 import net.plumt.sociallogin.google.internal.GoogleLoginProvider
 
 /**
- * Google 로그인 Provider 를 만드는 진입점. Credential Manager 와 Sign in with Google(googleid)을 쓴다.
- * 지원이 끝난 `GoogleSignIn`(play-services-auth) API 는 쓰지 않는다.
+ * Google 로그인 Provider 를 만드는 진입점.
  *
  * ```kotlin
  * val google = GoogleLogin.provider(appContext, GoogleLoginConfig(serverClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID))
- * manager.signIn(ProviderId.GOOGLE, activity, SignInOptions(nonce = nonceFromServer))
+ * manager.signIn(ProviderId.GOOGLE, activity)
  * ```
  *
- * - 결과는 Google **ID 토큰**이다(액세스 토큰 없음). 서버가 서명·`aud`(= serverClientId)·`exp`·`nonce` 를 검증한다.
- * - 계정이 많은 기기에서 계정 선택 시트가 `TransactionTooLargeException` 으로 실패하면 버튼 흐름으로 한 번 다시 시도한다.
- *   그것도 실패하면 [net.plumt.sociallogin.FailureKind.UNSUPPORTED] + vendorCode `TransactionTooLargeException` 이다.
- * - 지원 동작: 로그인, 로그아웃(Credential Manager 상태 지우기 — 다음 로그인에서 자동 선택이 풀린다).
- * - 연결 해제(권한 철회)와 토큰 갱신은 지원하지 않는다([net.plumt.sociallogin.FailureKind.UNSUPPORTED]).
- *   철회는 서버가 Google OAuth 철회 엔드포인트로 하고, 새 ID 토큰은 다시 로그인([GoogleSignInMode.BOTTOM_SHEET] +
- *   `filterByAuthorizedAccounts`·`autoSelectEnabled`)으로 받는다.
+ * - 결과는 Google **ID 토큰**이다(액세스 토큰 없음). 서버가 서명·`aud`(= serverClientId)·`exp`(·`nonce`)를 검증한다.
+ * - 기본 모드 [GoogleSignInMode.LEGACY_GOOGLE_SIGN_IN] 은 Google Sign-In 계정 선택 화면을 투명 호스트 Activity 로 띄운다.
+ *   계정이 많은 고밀도 기기에서 Credential Manager 시트가 Binder 전송 한도에 걸려 뜨지 못한 사례를 피하는 경로다.
+ *   지원 중단 표시가 붙은 API 이고 nonce 를 넣을 수 없다. nonce 가 필요하면 [GoogleSignInMode.BUTTON]·
+ *   [GoogleSignInMode.BOTTOM_SHEET](Credential Manager)를 고른다.
+ * - Credential Manager 모드에서 계정 선택 시트가 `TransactionTooLargeException` 으로 실패하면 버튼 흐름으로 한 번 다시
+ *   시도한다. 어느 모드든 그 예외로 끝나면 [net.plumt.sociallogin.FailureKind.UNSUPPORTED] + vendorCode
+ *   `TransactionTooLargeException` 이다.
+ * - 지원 동작: 로그인, 로그아웃(기기의 로그인 상태 지우기). 기본 모드는 연결 해제(Google 서버의 권한 철회)도 한다.
+ *   토큰 갱신은 지원하지 않는다 — 새 ID 토큰은 다시 로그인해 받는다.
  */
 public object GoogleLogin {
 

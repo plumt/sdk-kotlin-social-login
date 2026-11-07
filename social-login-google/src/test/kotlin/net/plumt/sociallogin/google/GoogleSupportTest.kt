@@ -65,7 +65,8 @@ class GoogleErrorsTest {
             val f = GoogleErrors.toResult(e, "signIn") as SocialLoginResult.Failure
             assertEquals(kind, f.kind)
             assertEquals(e.type, f.vendorCode)
-            assertEquals("Google signIn 실패: ${e.type}", f.message)
+            // 계정 없음은 설정 오류일 수도 있다는 안내가 붙는다(0.0.2)
+            assertTrue(f.message, f.message.startsWith("Google signIn 실패: ${e.type}"))
             assertEquals(ProviderId.GOOGLE, f.providerId)
             assertSame(e, f.cause)
         }
@@ -126,7 +127,8 @@ class GoogleLoginConfigTest {
     @Test
     fun `기본값과 경계`() {
         val c = GoogleLoginConfig(CLIENT_ID)
-        assertEquals(GoogleSignInMode.BOTTOM_SHEET, c.mode)
+        // 0.0.2 부터 기본은 Google Sign-In 계정 선택이다
+        assertEquals(GoogleSignInMode.LEGACY_GOOGLE_SIGN_IN, c.mode)
         assertFalse(c.filterByAuthorizedAccounts)
         assertFalse(c.autoSelectEnabled)
         GoogleLoginConfig("a" + GoogleLoginConfig.CLIENT_ID_SUFFIX)
@@ -140,7 +142,7 @@ class GoogleLoginConfigTest {
         val tooLong = "a".repeat(GoogleLoginConfig.MAX_CLIENT_ID_LENGTH - GoogleLoginConfig.CLIENT_ID_SUFFIX.length + 1) +
             GoogleLoginConfig.CLIENT_ID_SUFFIX
         listOf(
-            "", GoogleLoginConfig.CLIENT_ID_SUFFIX, "1234-abc", "1234 abc.apps.googleusercontent.com",
+            GoogleLoginConfig.CLIENT_ID_SUFFIX, "1234-abc", "1234 abc.apps.googleusercontent.com",
             "YOUR_GOOGLE_WEB_CLIENT_ID", tooLong, "가.apps.googleusercontent.com\n",
         ).forEach { bad ->
             val e = assertThrows(IllegalArgumentException::class.java) { GoogleLoginConfig(bad) }
@@ -150,13 +152,17 @@ class GoogleLoginConfigTest {
     }
 
     @Test
-    fun `버튼 흐름에 시트 전용 선택지를 켜면 거절`() {
-        listOf(true to false, false to true, true to true).forEach { (filter, auto) ->
-            val e = assertThrows(IllegalArgumentException::class.java) {
-                GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BUTTON, filter, auto)
+    fun `시트가 아닌 모드에 시트 전용 선택지를 켜면 거절`() {
+        for (mode in listOf(GoogleSignInMode.BUTTON, GoogleSignInMode.LEGACY_GOOGLE_SIGN_IN)) {
+            listOf(true to false, false to true, true to true).forEach { (filter, auto) ->
+                val e = assertThrows(IllegalArgumentException::class.java) {
+                    GoogleLoginConfig(CLIENT_ID, mode, filter, auto)
+                }
+                assertTrue(e.message!!.contains("BOTTOM_SHEET"))
+                assertTrue(e.message!!.contains("mode=$mode"))
+                val x = assertThrows(IllegalArgumentException::class.java) { GoogleSignInExtension(mode, filter, auto) }
+                assertTrue(x.message!!.contains("mode=$mode"))
             }
-            assertTrue(e.message!!.contains("BOTTOM_SHEET"))
-            assertTrue(e.message!!.contains("mode=BUTTON"))
         }
     }
 
@@ -171,7 +177,8 @@ class GoogleLoginConfigTest {
         assertNotEquals(c, GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET, false, false))
         assertNotEquals(c, GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET, true, true))
         assertNotEquals(c as Any, CLIENT_ID)
-        assertEquals(listOf("BOTTOM_SHEET", "BUTTON"), GoogleSignInMode.entries.map { it.name })
+        // 0.0.1 상수의 순서를 지키고 새 상수는 뒤에 붙인다
+        assertEquals(listOf("BOTTOM_SHEET", "BUTTON", "LEGACY_GOOGLE_SIGN_IN"), GoogleSignInMode.entries.map { it.name })
     }
 
     @Test
@@ -198,7 +205,9 @@ class GoogleLoginFactoryTest {
         val p = GoogleLogin.provider(app, GoogleLoginConfig(CLIENT_ID))
         assertEquals(ProviderId.GOOGLE, p.id)
         assertSame(ProviderId.GOOGLE, GoogleLogin.PROVIDER_ID)
-        assertEquals(setOf(Capability.SIGN_OUT), p.capabilities)
+        assertEquals(setOf(Capability.SIGN_OUT, Capability.UNLINK), p.capabilities)
+        val sheet = GoogleLogin.provider(app, GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET))
+        assertEquals(setOf(Capability.SIGN_OUT), sheet.capabilities)
         val activity = Robolectric.buildActivity(Activity::class.java).get()
         assertEquals(ProviderId.GOOGLE, GoogleLogin.provider(activity, GoogleLoginConfig(CLIENT_ID)).id)
     }

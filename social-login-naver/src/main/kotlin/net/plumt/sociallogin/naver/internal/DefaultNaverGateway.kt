@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import com.navercorp.nid.NaverIdLoginSDK
 import com.navercorp.nid.oauth.NidOAuthLogin
+import com.navercorp.nid.oauth.NidOAuthPreferencesManager
 import kotlinx.coroutines.suspendCancellableCoroutine
 import net.plumt.sociallogin.naver.NaverLoginConfig
 
@@ -32,6 +33,17 @@ internal class DefaultNaverGateway(private val appContext: Context) : NaverGatew
 
     override suspend fun deleteToken(): Unit = suspendCancellableCoroutine { cont ->
         NidOAuthLogin().callDeleteTokenApi(naverCallback(cont) { NaverIdLoginSDK.getLastErrorCode() })
+    }
+
+    override fun restoreToken(token: NaverStoredToken) {
+        try {
+            // SDK 의 logout 이 비우는 두 값과 만료 시각을 되돌린다. 공개 문서에 없는 저장소라 다른 SDK 버전에서는 없을 수 있다
+            NidOAuthPreferencesManager.accessToken = token.accessToken
+            NidOAuthPreferencesManager.refreshToken = token.refreshToken
+            NidOAuthPreferencesManager.expiresAt = token.expiresAtSeconds
+        } catch (e: LinkageError) {
+            throw IllegalStateException("이 네이버 SDK 버전은 토큰 저장소를 열지 않아 토큰을 되돌릴 수 없다", e)
+        }
     }
 
     override suspend fun refreshAccessToken(): Unit = suspendCancellableCoroutine { cont ->

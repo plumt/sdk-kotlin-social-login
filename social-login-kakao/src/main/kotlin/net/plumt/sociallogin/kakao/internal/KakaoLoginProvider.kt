@@ -31,15 +31,26 @@ internal class KakaoLoginProvider(
             call("signIn") {
                 val token = login(host, options.nonce)
                 val socialToken = toSocialToken(token) ?: return@call emptyTokenFailure("signIn")
+                if (options.nonce != null && socialToken.idToken == null) {
+                    // nonce 를 대조할 ID 토큰이 없다. 성공으로 넘기면 서버의 nonce 검증이 엉뚱한 곳에서 실패한다
+                    return@call SocialLoginResult.Failure(
+                        kind = FailureKind.CONFIGURATION,
+                        message = "카카오 로그인에 nonce 를 넘겼는데 ID 토큰이 없다 — 카카오 디벨로퍼스에서 " +
+                            "OpenID Connect 를 켠다(기기에는 카카오 SDK 토큰이 저장된 상태다)",
+                        providerId = id,
+                    )
+                }
                 SocialLoginResult.Success(SocialAccount(providerId = id, token = socialToken))
             }
         }
 
+    /** 카카오 SDK 는 로그아웃 요청이 실패해도 기기의 토큰을 지운다. 실패 결과여도 기기 로그인 상태는 이미 없다. */
     override suspend fun signOut(): SocialLoginResult<Unit> = call("signOut") {
         gateway.logout()
         SocialLoginResult.Success(Unit)
     }
 
+    /** 카카오 SDK 는 연결 해제가 성공했을 때만 기기의 토큰을 지운다. 실패하면 토큰이 남아 다시 시도할 수 있다. */
     override suspend fun unlink(): SocialLoginResult<Unit> = call("unlink") {
         gateway.unlink()
         SocialLoginResult.Success(Unit)
@@ -77,6 +88,13 @@ internal class KakaoLoginProvider(
 
     /** SDK 를 초기화하고 [block] 을 실행한다. 예외는 결과로 바꾸고, 코루틴 취소만 다시 던진다. */
     private suspend fun <T> call(operation: String, block: suspend () -> SocialLoginResult<T>): SocialLoginResult<T> {
+        if (!config.isConfigured) {
+            return SocialLoginResult.Failure(
+                kind = FailureKind.CONFIGURATION,
+                message = "카카오 $operation: nativeAppKey 가 비어 있다(설정 안 됨). SDK 를 부르지 않았다",
+                providerId = id,
+            )
+        }
         try {
             gateway.initialize(config.nativeAppKey)
         } catch (e: CancellationException) {
