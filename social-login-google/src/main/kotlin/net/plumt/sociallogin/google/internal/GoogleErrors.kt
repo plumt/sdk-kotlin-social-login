@@ -13,6 +13,7 @@ import androidx.credentials.exceptions.GetCredentialProviderConfigurationExcepti
 import androidx.credentials.exceptions.GetCredentialUnsupportedException
 import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.UnsupportedApiCallException
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import net.plumt.sociallogin.FailureKind
 import net.plumt.sociallogin.ProviderId
@@ -48,6 +49,14 @@ internal object GoogleErrors {
         is GoogleIdTokenParsingException ->
             failure(FailureKind.UNKNOWN, operation, "GoogleIdTokenParsingException", error)
         is ApiException -> apiException(error, operation)
+        // 기기의 Google Play 서비스가 요청한 기능(예: revokeAccess)을 아직 모른다
+        is UnsupportedApiCallException -> failure(
+            FailureKind.UNSUPPORTED,
+            operation,
+            "UnsupportedApiCallException",
+            error,
+            hint = "기기의 Google Play 서비스가 이 기능을 지원하지 않는다 — Google Play 서비스를 업데이트한다",
+        )
         is ActivityNotFoundException -> failure(
             FailureKind.UNSUPPORTED,
             operation,
@@ -131,7 +140,7 @@ internal object GoogleErrors {
         STATUS_SIGN_IN_REQUIRED -> FailureKind.NOT_SIGNED_IN
         STATUS_INTERRUPTED, STATUS_CANCELED -> FailureKind.INTERRUPTED
         STATUS_SERVICE_MISSING, STATUS_SERVICE_VERSION_UPDATE_REQUIRED, STATUS_SERVICE_DISABLED,
-        STATUS_SERVICE_INVALID, STATUS_SERVICE_UPDATING,
+        STATUS_SERVICE_INVALID, STATUS_SERVICE_UPDATING, STATUS_API_NOT_CONNECTED,
         -> FailureKind.UNSUPPORTED
         else -> FailureKind.UNKNOWN
     }
@@ -149,6 +158,7 @@ internal object GoogleErrors {
     const val STATUS_INTERRUPTED: Int = 14
     const val STATUS_TIMEOUT: Int = 15
     const val STATUS_CANCELED: Int = 16
+    const val STATUS_API_NOT_CONNECTED: Int = 17
     const val STATUS_SERVICE_UPDATING: Int = 18
     const val STATUS_SIGN_IN_FAILED: Int = 12500
     const val STATUS_SIGN_IN_CANCELLED: Int = 12501

@@ -1,5 +1,6 @@
 package net.plumt.sociallogin.google.internal
 
+import android.accounts.Account
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -8,15 +9,22 @@ import androidx.credentials.Credential
 import androidx.credentials.CredentialManager
 import androidx.credentials.CredentialOption
 import androidx.credentials.GetCredentialRequest
+import com.google.android.gms.auth.api.identity.Identity
+import com.google.android.gms.auth.api.identity.RevokeAccessRequest
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.Scopes
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Scope
 import com.google.android.gms.tasks.Task
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-/** 실제 Credential Manager·Google Sign-In 을 부르는 [GoogleGateway]. 단위 테스트 대상이 아니다(커버리지 제외 — build.gradle.kts). */
+/**
+ * 실제 Credential Manager·Google Sign-In·AuthorizationClient 를 부르는 [GoogleGateway].
+ * 단위 테스트 대상이 아니다(커버리지 제외 — build.gradle.kts).
+ */
 // Google Sign-In(play-services-auth)은 지원 중단 표시가 붙었지만, 계정이 많은 기기에서도 뜨는 경로라 기본 모드로 쓴다
 @Suppress("DEPRECATION")
 internal class DefaultGoogleGateway(private val appContext: Context) : GoogleGateway {
@@ -55,6 +63,15 @@ internal class DefaultGoogleGateway(private val appContext: Context) : GoogleGat
         GoogleSignIn.getClient(appContext, options(serverClientId)).revokeAccess().await()
     }
 
+    override suspend fun revokeAuthorization(accountEmail: String) {
+        val request = RevokeAccessRequest.builder()
+            .setAccount(Account(accountEmail, GOOGLE_ACCOUNT_TYPE))
+            // 철회는 요청한 scope 와 무관하게 이 앱에 준 권한 전부에 미친다. 로그인이 받는 기본 scope 를 적는다
+            .setScopes(listOf(Scope(Scopes.OPEN_ID), Scope(Scopes.EMAIL), Scope(Scopes.PROFILE)))
+            .build()
+        Identity.getAuthorizationClient(appContext).revokeAccess(request).await()
+    }
+
     private fun options(serverClientId: String): GoogleSignInOptions =
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(serverClientId)
@@ -71,5 +88,10 @@ internal class DefaultGoogleGateway(private val appContext: Context) : GoogleGat
                 else -> cont.resumeWithException(IllegalStateException("Google Play 서비스 작업이 원인 없이 실패했다(취소됨)"))
             }
         }
+    }
+
+    private companion object {
+        /** 기기 Google 계정의 `android.accounts.Account` 타입. */
+        const val GOOGLE_ACCOUNT_TYPE = "com.google"
     }
 }

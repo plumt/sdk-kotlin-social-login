@@ -2,6 +2,7 @@ public final class net/plumt/sociallogin/google/GoogleLogin {
 	public static final field INSTANCE Lnet/plumt/sociallogin/google/GoogleLogin;
 	public static final field PROVIDER_ID Lnet/plumt/sociallogin/ProviderId;
 	public static final fun provider (Landroid/content/Context;Lnet/plumt/sociallogin/google/GoogleLoginConfig;)Lnet/plumt/sociallogin/SocialLoginProvider;
+	public static final fun unlink (Lnet/plumt/sociallogin/SocialLoginProvider;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class net/plumt/sociallogin/google/GoogleLoginConfig {

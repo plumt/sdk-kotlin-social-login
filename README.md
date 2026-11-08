@@ -49,7 +49,7 @@ dependencyResolutionManagement {
 dependencies {
     implementation("net.plumt.sociallogin:social-login-kakao:0.0.2")
     implementation("net.plumt.sociallogin:social-login-naver:0.0.2")
-    implementation("net.plumt.sociallogin:social-login-google:0.0.2")
+    implementation("net.plumt.sociallogin:social-login-google:0.1.0")
 }
 ```
 
@@ -88,7 +88,7 @@ viewModelScope.launch {   // 회전에 살아남는 스코프로 부른다(아�
 manager.signOut(ProviderId.KAKAO)      // 이 기기의 로그인 상태만 지운다
 manager.unlink(ProviderId.KAKAO)       // 앱 연결 해제(회원 탈퇴 때)
 manager.refreshToken(ProviderId.NAVER) // 저장된 갱신 토큰으로 새 액세스 토큰
-manager.capabilitiesOf(ProviderId.GOOGLE)  // 기본 모드 [SIGN_OUT, UNLINK] — Google 은 토큰 갱신이 없다
+manager.capabilitiesOf(ProviderId.GOOGLE)  // [SIGN_OUT, UNLINK] — Google 은 토큰 갱신이 없다
 ```
 
 - `SocialLoginManager` 하나를 앱에 두고 공유한다. DI 프레임워크에 의존하지 않으니 Hilt·Koin·수동 어느 쪽으로도 둔다.
@@ -185,9 +185,9 @@ android {
 
 | 모드 | 경로 | nonce | 연결 해제 | 쓸 때 |
 |---|---|---|---|---|
-| `LEGACY_GOOGLE_SIGN_IN` (기본) | Google Sign-In 계정 선택 화면을 투명 호스트 Activity 로 띄운다 | 불가 → `UNSUPPORTED` | `revokeAccess`(Google 서버의 권한 철회) | 버튼을 눌러 로그인. 계정이 많은 기기에서도 뜬다 |
-| `BUTTON` | Credential Manager 버튼 흐름(`GetSignInWithGoogleOption`), 계정 추가 가능 | 가능 | `UNSUPPORTED`(서버가 철회) | nonce 가 필요한 버튼 로그인 |
-| `BOTTOM_SHEET` | Credential Manager 계정 선택 시트(`GetGoogleIdOption`) | 가능 | `UNSUPPORTED` | 앱 시작 때 조용한 자동 로그인(`filterByAuthorizedAccounts = true`·`autoSelectEnabled = true`) |
+| `LEGACY_GOOGLE_SIGN_IN` (기본) | Google Sign-In 계정 선택 화면을 투명 호스트 Activity 로 띄운다 | 불가 → `UNSUPPORTED` | 지원 — `GoogleSignIn.revokeAccess` | 버튼을 눌러 로그인. 계정이 많은 기기에서도 뜬다 |
+| `BUTTON` | Credential Manager 버튼 흐름(`GetSignInWithGoogleOption`), 계정 추가 가능 | 가능 | 지원(0.1.0) — `AuthorizationClient.revokeAccess` | nonce 가 필요한 버튼 로그인 |
+| `BOTTOM_SHEET` | Credential Manager 계정 선택 시트(`GetGoogleIdOption`) | 가능 | 지원(0.1.0) — `BUTTON` 과 같다 | 앱 시작 때 조용한 자동 로그인(`filterByAuthorizedAccounts = true`·`autoSelectEnabled = true`) |
 
 호출마다 모드를 바꾸려면 `SignInOptions` 에 `GoogleSignInExtension` 을 넣는다. 앱 시작 때 시트로 조용히 로그인해 보고,
 `NO_CREDENTIAL` 이면 버튼에서 기본 모드로 로그인하는 흐름을 Provider 하나로 한다.
@@ -202,6 +202,36 @@ when (val result = manager.signIn(ProviderId.GOOGLE, activity, silent)) {
     else -> showLoginButtons()  // 누르면 manager.signIn(ProviderId.GOOGLE, activity) — 기본 모드
 }
 ```
+
+#### 연결 해제(회원 탈퇴)
+
+| 상황 | 부를 것 | 동작 |
+|---|---|---|
+| 같은 프로세스에서 이 Provider 로 로그인했다 | `manager.unlink(ProviderId.GOOGLE)` | 그 로그인 경로로 철회한다. 계정은 Provider 가 메모리에 기억한 것(저장하지 않는다) |
+| 앱이 다시 떠 로그인 없이 탈퇴한다 — 기본 모드 | `manager.unlink(ProviderId.GOOGLE)` | Google Sign-In 이 마지막 계정을 안다 |
+| 앱이 다시 떠 로그인 없이 탈퇴한다 — Credential Manager 모드 | `GoogleLogin.unlink(googleProvider, accountEmail)` | 인자 없는 `unlink` 는 계정을 몰라 `NOT_SIGNED_IN`(vendorCode `NoAccountToRevoke`)이다. 로그인 결과의 `SocialAccount.email` 을 앱이 보관했다가 넘긴다 |
+
+```kotlin
+// googleProvider 는 manager 에 등록한 GoogleLogin.provider(...) 인스턴스
+when (val r = GoogleLogin.unlink(googleProvider, accountEmail = savedEmail)) {
+    is SocialLoginResult.Success -> api.deleteAccount()
+    SocialLoginResult.Cancelled -> Unit
+    is SocialLoginResult.Failure -> if (r.kind.retryable) showRetry() else showError(r.kind)
+}
+```
+
+- 화면을 띄우지 않는다. Google 서버에서 이 앱(같은 OAuth 프로젝트)에 준 권한을 모두 철회하고 기기 로그인 상태를 지운다.
+  다음 로그인은 계정 선택과 동의 화면을 다시 거친다.
+- 망 실패(`NETWORK`, 재시도 가능)면 기기 상태와 기억한 계정이 남아 같은 호출로 다시 시도한다.
+- `GoogleLogin.unlink` 는 `SocialLoginManager` 의 동시 호출 잠금을 거치지 않는다. 같은 Provider 의 다른 호출과 겹치지 않게 부른다.
+- 앱 서버가 Google 의 갱신 토큰을 따로 받아 둔 경우(오프라인 접근)는 이 라이브러리가 다루지 않는다. 그 토큰은 서버가 철회한다.
+
+| Android | 로그인(Credential Manager 모드) | 로그인(기본 모드) | 연결 해제 |
+|---|---|---|---|
+| 6–13 (API 23–33) | Google Play 서비스(`credentials-play-services-auth`) | Google Play 서비스 | Google Play 서비스(`revokeAccess`) |
+| 14 이상 (API 34+) | 시스템 Credential Manager → Google Play 서비스 | Google Play 서비스 | Google Play 서비스(`revokeAccess`) |
+
+연결 해제는 API 레벨이 아니라 기기의 Google Play 서비스 버전에 달렸다. Play 서비스가 없거나 오래됐으면 `UNSUPPORTED` 다.
 
 - 기본 모드는 Google 이 지원 중단(deprecated)으로 표시한 `play-services-auth` 의 `GoogleSignIn` 을 쓴다. 지금은 동작하지만
   Google 이 제거하면 이 라이브러리도 모드를 바꿔야 한다. Credential Manager 를 거치지 않고 ID 토큰을 받는 지원 중인 API 는 없다.
@@ -221,6 +251,16 @@ Binder 데이터가 한도(약 1MB)를 넘어 계정 선택 시트가 뜨지 못
 - 어느 모드든 이 예외로 끝나면 `FailureKind.UNSUPPORTED` + `vendorCode = "TransactionTooLargeException"` 이다. 앞 시도의 예외는
   `cause.suppressed` 에 남는다. Credential Manager 모드면 기본 모드로 바꾸고, 그래도 안 되면 다른 로그인 수단을 안내한다.
 - 다른 프로세스(시스템 선택 앱·Google Play 서비스)에서 난 예외는 앱에 이 이름 없이 올 수 있다. 그때는 판별되지 않는다.
+
+#### 알려진 한계 — Credential Manager 모드의 연결 해제(0.1.0)
+
+- `AuthorizationClient.revokeAccess` 는 `play-services-auth` 21.4.0 에 처음 들어왔고 기기의 Google Play 서비스도 이 기능을
+  알아야 한다. 오래된 Play 서비스면 `UNSUPPORTED`(vendorCode `UnsupportedApiCallException` 또는 `ApiException(17)`)이다.
+- 철회할 계정은 이메일로 지정한다. 기기에서 그 계정이 지워졌으면 Google 이 거절할 수 있다(`ApiException` 상태 코드는 확인하지
+  못했다 — 표에 없는 코드는 `UNKNOWN` 에 vendorCode 로 남는다). 그때는 사용자가 Google 계정 설정의
+  "서드 파티 앱 및 서비스" 에서 끊거나, 앱 서버가 처리한다.
+- `play-services-auth` 22.0.0 은 Google Sign-In API 를 지웠고 minSdk 가 24 다. 기본 모드가 그 API 를 쓰므로 이 모듈은 21.x
+  (21.6.0)에 머문다. 앱이 22 이상을 고르면 기본 모드 로그인이 `NoClassDefFoundError` 로 깨진다 — 21.x 를 유지한다.
 
 ## 위협 모델
 
@@ -273,7 +313,7 @@ Compose 버튼 모듈은 두지 않는다. 각 수단의 로고·버튼은 상�
 - compileSdk 36, Java 11 바이트코드, Kotlin 2.2
 - `social-login-core` 는 순수 JVM 이라 서버·테스트에서도 쓴다
 - 의존(검증한 버전): 카카오 `com.kakao.sdk:v2-user` 2.20.6, 네이버 `com.navercorp.nid:oauth` 5.10.0, `androidx.credentials` 1.5.0,
-  `com.google.android.libraries.identity.googleid:googleid` 1.1.1, `com.google.android.gms:play-services-auth` 21.3.0,
+  `com.google.android.libraries.identity.googleid:googleid` 1.1.1, `com.google.android.gms:play-services-auth` 21.6.0(Credential Manager 모드의 연결 해제에 21.4.0 이상 필요, 22.0.0 은 쓰지 않는다),
   `kotlinx-coroutines` 1.10.2. 벤더 SDK 타입은 공개 API 에 드러내지 않는다(`implementation`). 앱이 SDK 를 직접 쓰려면 직접 의존한다
 - 앱이 벤더 SDK 를 더 높은 버전으로 올려도 오류 분류는 원인 **이름**으로 해서, 이 라이브러리가 모르는 원인은 예외 없이 `UNKNOWN`
   (네이버는 HTTP 상태 분류)으로 끝난다. 네이버 연결 해제 실패 뒤의 토큰 되돌리기는 SDK 내부 저장소에 기대므로 5.10.0 이 아닌

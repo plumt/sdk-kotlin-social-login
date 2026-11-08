@@ -207,7 +207,7 @@ class GoogleLoginFactoryTest {
         assertSame(ProviderId.GOOGLE, GoogleLogin.PROVIDER_ID)
         assertEquals(setOf(Capability.SIGN_OUT, Capability.UNLINK), p.capabilities)
         val sheet = GoogleLogin.provider(app, GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET))
-        assertEquals(setOf(Capability.SIGN_OUT), sheet.capabilities)
+        assertEquals(setOf(Capability.SIGN_OUT, Capability.UNLINK), sheet.capabilities)
         val activity = Robolectric.buildActivity(Activity::class.java).get()
         assertEquals(ProviderId.GOOGLE, GoogleLogin.provider(activity, GoogleLoginConfig(CLIENT_ID)).id)
     }

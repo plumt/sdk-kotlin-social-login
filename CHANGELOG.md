@@ -88,6 +88,23 @@
 
 ### [Unreleased]
 
+### [0.1.0] - 미발행
+
+#### 추가
+- **Credential Manager 모드(`BUTTON`·`BOTTOM_SHEET`)의 연결 해제.** `AuthorizationClient.revokeAccess` 로 Google 서버에서 이 앱에 준 권한을 철회하고 기기 로그인 상태를 지운다. 화면을 띄우지 않는다. 계정은 그 Provider 인스턴스의 마지막 로그인에서 메모리로 기억한다(기기에 저장하지 않는다)
+- `GoogleLogin.unlink(provider, accountEmail)` — 프로세스가 다시 떠 마지막 로그인을 모를 때 로그인 때 받은 이메일로 철회한다. `IllegalArgumentException`: `GoogleLogin.provider` 로 만들지 않은 Provider·공백뿐인 이메일
+- 실패 신호 `NOT_SIGNED_IN`(vendorCode `NoAccountToRevoke`) — 철회할 계정을 모를 때. Google 을 부르지 않는다
+- 오류 분류: `UnsupportedApiCallException`(기기의 Play 서비스가 기능을 모름)·`ApiException(17)` → `UNSUPPORTED`
+
+#### 바뀜
+- **`capabilities` 가 모든 모드에서 `[SIGN_OUT, UNLINK]` 다.** 0.0.2 의 Credential Manager 모드는 `[SIGN_OUT]` 이라 `SocialLoginManager.unlink` 가 Provider 를 부르지 않고 `UNSUPPORTED` 였고, Provider 의 `unlink()` 도 `UNSUPPORTED` 였다. 이제 철회하거나, 계정을 모르면 `NOT_SIGNED_IN` 이다
+- 연결 해제의 주 경로는 그 인스턴스의 마지막 로그인 경로(호출별 `GoogleSignInExtension` 포함), 모르면 설정 모드다. 기본 모드에서도 계정 이메일을 알면 `AuthorizationClient.revokeAccess` 를 보조로 한 번 더 부른다(실패는 결과에 넣지 않는다)
+- 의존 `com.google.android.gms:play-services-auth` 21.3.0 → 21.6.0(`revokeAccess` 는 21.4.0 부터). 22.0.0 은 Google Sign-In API 를 지우고 minSdk 24 라 쓰지 않는다
+
+#### 호환성
+- 바이너리 호환. `.api` 는 `GoogleLogin.unlink(SocialLoginProvider, String)` 한 줄 추가만 있다. 기본 모드(`LEGACY_GOOGLE_SIGN_IN`)·기존 시그니처는 그대로다
+- 동작 계약이 바뀐 곳은 위 "바뀜" 의 Credential Manager 모드 연결 해제 하나다. `UNSUPPORTED` 를 보고 서버 철회로 넘기던 앱은 이제 `Success`·`NOT_SIGNED_IN` 을 받는다
+
 ### [0.0.2] - 2026-11-07
 
 #### 바뀜 (동작 계약)

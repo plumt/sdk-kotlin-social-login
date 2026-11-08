@@ -123,6 +123,16 @@ internal class FakeGoogleGateway : GoogleGateway {
         legacyClientIds += serverClientId
         revoke.invoke()
     }
+
+    // Credential Manager 모드의 권한 철회(AuthorizationClient.revokeAccess)
+    val revokedEmails = mutableListOf<String>()
+    var revokeAuthorization: suspend () -> Unit = {}
+
+    override suspend fun revokeAuthorization(accountEmail: String) {
+        calls += "revokeAuthorization"
+        revokedEmails += accountEmail
+        revokeAuthorization.invoke()
+    }
 }
 
 internal fun legacyAccount(
@@ -147,7 +157,8 @@ class GoogleLoginProviderTest {
     @Test
     fun `식별자와 지원 동작`() {
         assertEquals(ProviderId.GOOGLE, provider().id)
-        assertEquals(setOf(Capability.SIGN_OUT), provider().capabilities)
+        // 0.1.0 부터 Credential Manager 모드도 연결 해제를 지원한다
+        assertEquals(setOf(Capability.SIGN_OUT, Capability.UNLINK), provider().capabilities)
     }
 
     @Test
@@ -229,13 +240,16 @@ class GoogleLoginProviderTest {
     }
 
     @Test
-    fun `연결 해제·갱신은 UNSUPPORTED 이고 게이트웨이를 부르지 않는다`() = runTest(dispatcher) {
+    fun `로그인 전 연결 해제는 NOT_SIGNED_IN, 갱신은 UNSUPPORTED 이고 게이트웨이를 부르지 않는다`() = runTest(dispatcher) {
         val u = provider().unlink().failure()
-        assertEquals(FailureKind.UNSUPPORTED, u.kind)
-        assertTrue(u.message.contains("철회"))
+        assertEquals(FailureKind.NOT_SIGNED_IN, u.kind)
+        assertEquals(GoogleLoginProvider.VENDOR_NO_ACCOUNT, u.vendorCode)
         val r = provider().refreshToken().failure()
         assertEquals(FailureKind.UNSUPPORTED, r.kind)
-        assertTrue(provider(GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BUTTON)).unlink() is SocialLoginResult.Failure)
+        assertEquals(
+            FailureKind.NOT_SIGNED_IN,
+            provider(GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BUTTON)).unlink().failure().kind,
+        )
         assertTrue(gateway.calls.isEmpty())
     }
 
@@ -263,8 +277,9 @@ class GoogleLoginProviderTest {
         gate.complete(Unit)
         assertTrue(first.await() is SocialLoginResult.Success)
         assertEquals(1, gateway.calls.size)
-        // Manager 는 선언하지 않은 동작을 부르지 않는다
-        assertEquals(FailureKind.UNSUPPORTED, manager.unlink(ProviderId.GOOGLE).failure().kind)
+        // 0.1.0 — Manager 를 거친 연결 해제가 로그인한 계정의 권한을 철회한다
+        assertEquals(SocialLoginResult.Success(Unit), manager.unlink(ProviderId.GOOGLE))
+        assertTrue(gateway.calls.contains("revokeAuthorization"))
     }
 
     @Test

@@ -7,12 +7,14 @@ public enum class GoogleSignInMode {
     /**
      * Credential Manager 의 계정 선택 시트(`GetGoogleIdOption`). 앱 시작 때 조용한 자동 로그인 시도에 쓴다.
      * 계정이 많은 일부 기기에서 시트가 뜨지 못할 수 있다(README 알려진 문제).
+     * 연결 해제는 `AuthorizationClient.revokeAccess` 로 한다(0.1.0, [GoogleLogin.unlink] 참고).
      */
     BOTTOM_SHEET,
 
     /**
      * Credential Manager 의 "Google 계정으로 로그인" 버튼 흐름(`GetSignInWithGoogleOption`). 계정 추가도 된다.
      * [BOTTOM_SHEET] 와 같은 Credential Manager 경로라 같은 알려진 문제의 영향을 받을 수 있다.
+     * 연결 해제는 [BOTTOM_SHEET] 와 같다.
      */
     BUTTON,
 

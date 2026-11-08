@@ -37,4 +37,10 @@ internal interface GoogleGateway {
 
     /** 이 앱에 준 권한을 Google 서버에서 철회하고 기기 로그인 상태도 지운다. 로그인한 계정이 없으면 `ApiException(4)`. */
     suspend fun legacyRevokeAccess(serverClientId: String)
+
+    /**
+     * Credential Manager 로그인의 권한 철회. `AuthorizationClient.revokeAccess` 로 [accountEmail] 계정이 이 앱에 준
+     * 권한을 모두 철회하고 그 계정의 캐시 토큰을 지운다. 화면을 띄우지 않는다. 실패는 `ApiException` 등 그대로.
+     */
+    suspend fun revokeAuthorization(accountEmail: String)
 }

@@ -24,13 +24,17 @@ internal class GoogleLoginProvider(
 
     override val id: ProviderId = ProviderId.GOOGLE
 
-    /** 기본 모드는 Google Sign-In 의 권한 철회로 연결 해제를 지원한다. Credential Manager 모드에는 그런 API 가 없다. */
-    override val capabilities: Set<Capability> =
-        if (config.mode == GoogleSignInMode.LEGACY_GOOGLE_SIGN_IN) {
-            setOf(Capability.SIGN_OUT, Capability.UNLINK)
-        } else {
-            setOf(Capability.SIGN_OUT)
-        }
+    /**
+     * 모든 모드가 연결 해제를 지원한다. 기본 모드는 Google Sign-In 의 `revokeAccess`, Credential Manager 모드는
+     * `AuthorizationClient.revokeAccess`(0.1.0)로 철회한다.
+     */
+    override val capabilities: Set<Capability> = setOf(Capability.SIGN_OUT, Capability.UNLINK)
+
+    /** 이 인스턴스에서 마지막으로 로그인한 계정. 메모리에만 둔다(프로세스가 끝나면 사라진다). 이메일은 로그·결과에 넣지 않는다. */
+    private class SignedIn(val email: String?, val viaCredentialManager: Boolean)
+
+    @Volatile
+    private var lastSignIn: SignedIn? = null
 
     override suspend fun signIn(host: Activity, options: SignInOptions): SocialLoginResult<SocialAccount> {
         notConfigured("signIn")?.let { return it }
@@ -45,15 +49,19 @@ internal class GoogleLoginProvider(
             )
         }
         // 계정 선택 화면을 띄우는 호출은 메인 스레드에서 한다
-        return withContext(mainDispatcher) {
+        val viaCredentialManager = request.mode != GoogleSignInMode.LEGACY_GOOGLE_SIGN_IN
+        val result = withContext(mainDispatcher) {
             call("signIn") {
-                if (request.mode == GoogleSignInMode.LEGACY_GOOGLE_SIGN_IN) {
-                    legacySignIn(host)
-                } else {
+                if (viaCredentialManager) {
                     signInWithFallback(host, options.nonce, request)
+                } else {
+                    legacySignIn(host)
                 }
             }
         }
+        // 연결 해제가 어느 경로로, 어느 계정을 철회할지 기억한다
+        if (result is SocialLoginResult.Success) lastSignIn = SignedIn(result.value.email, viaCredentialManager)
+        return result
     }
 
     /** Google Sign-In 계정 선택 화면을 투명 호스트로 띄운다. 실패는 예외로 던져 [call] 이 분류한다. */
@@ -134,26 +142,52 @@ internal class GoogleLoginProvider(
             gateway.clearCredentialState()
             bestEffort { gateway.legacySignOut(config.serverClientId) }
         }
+        lastSignIn = null
         SocialLoginResult.Success(Unit)
     }
 
+    /** 계정을 이 인스턴스의 마지막 로그인에서 찾아 연결을 끊는다. 규칙은 [unlinkAccount]. */
+    override suspend fun unlink(): SocialLoginResult<Unit> = unlinkAccount(explicitEmail = null)
+
+    /** [accountEmail] 계정의 연결을 끊는다. 프로세스가 다시 떠 마지막 로그인을 모를 때 쓴다. 규칙은 [unlinkAccount]. */
+    suspend fun unlink(accountEmail: String): SocialLoginResult<Unit> = unlinkAccount(explicitEmail = accountEmail)
+
     /**
-     * 기본 모드: Google 서버에서 이 앱에 준 권한을 철회(`revokeAccess`)하고 기기 로그인 상태를 지운다. 로그인한 계정이 없으면
-     * [FailureKind.NOT_SIGNED_IN]. Credential Manager 모드: [FailureKind.UNSUPPORTED] — 철회는 앱 서버가 Google OAuth 철회
-     * 엔드포인트로 한다.
+     * Google 서버에서 이 앱에 준 권한을 철회하고 기기 로그인 상태를 지운다. 화면을 띄우지 않는다.
+     *
+     * 주 경로는 이 인스턴스의 마지막 로그인 경로, 모르면 설정 모드([GoogleLoginConfig.mode])다.
+     * - Google Sign-In: `GoogleSignIn.revokeAccess`. 로그인한 계정이 없으면 `ApiException(4)` → [FailureKind.NOT_SIGNED_IN].
+     * - Credential Manager: `AuthorizationClient.revokeAccess(계정)`. 계정은 [explicitEmail], 없으면 마지막 로그인의 이메일.
+     *   둘 다 없으면 Google 을 부르지 않고 [FailureKind.NOT_SIGNED_IN] + [VENDOR_NO_ACCOUNT].
+     *
+     * 주 경로의 실패만 결과로 알린다. 다른 경로의 철회(계정을 알 때)와 Credential Manager 상태 지우기는 보조로 해 보고
+     * 실패를 결과에 넣지 않는다. 성공하면 기억한 계정을 잊는다.
      */
-    override suspend fun unlink(): SocialLoginResult<Unit> {
+    private suspend fun unlinkAccount(explicitEmail: String?): SocialLoginResult<Unit> {
         notConfigured("unlink")?.let { return it }
-        if (config.mode != GoogleSignInMode.LEGACY_GOOGLE_SIGN_IN) {
+        val remembered = lastSignIn
+        val email = explicitEmail ?: remembered?.email
+        val viaCredentialManager = remembered?.viaCredentialManager ?: (config.mode != GoogleSignInMode.LEGACY_GOOGLE_SIGN_IN)
+        if (viaCredentialManager && email == null) {
             return SocialLoginResult.Failure(
-                kind = FailureKind.UNSUPPORTED,
-                message = "Google Credential Manager 모드의 연결 해제(권한 철회)는 앱 서버가 Google OAuth 철회 엔드포인트로 한다",
+                kind = FailureKind.NOT_SIGNED_IN,
+                message = "Google unlink: 철회할 계정을 모른다 — 이 Provider 로 로그인하지 않았거나 프로세스가 다시 떴다. " +
+                    "로그인 때 받은 이메일을 GoogleLogin.unlink(provider, accountEmail) 로 넘긴다. Google 을 부르지 않았다",
                 providerId = id,
+                vendorCode = VENDOR_NO_ACCOUNT,
             )
         }
         return call("unlink") {
-            gateway.legacyRevokeAccess(config.serverClientId)
+            if (viaCredentialManager) {
+                gateway.revokeAuthorization(checkNotNull(email))
+                bestEffort { gateway.legacyRevokeAccess(config.serverClientId) }
+            } else {
+                gateway.legacyRevokeAccess(config.serverClientId)
+                if (email != null) bestEffort { gateway.revokeAuthorization(email) }
+            }
+            // 다음 로그인이 기본 계정을 조용히 고르지 않고 계정 선택·동의 화면을 다시 띄우게 한다
             bestEffort { gateway.clearCredentialState() }
+            lastSignIn = null
             SocialLoginResult.Success(Unit)
         }
     }
@@ -198,5 +232,8 @@ internal class GoogleLoginProvider(
     internal companion object {
         const val VENDOR_HOST_BUSY: String = "HostBusy"
         const val VENDOR_HOST_NOT_STARTED: String = "HostNotStarted"
+
+        /** Credential Manager 경로의 연결 해제에 철회할 계정이 없을 때의 vendorCode. */
+        const val VENDOR_NO_ACCOUNT: String = "NoAccountToRevoke"
     }
 }

@@ -165,6 +165,7 @@
 |---|---|
 | `IllegalArgumentException` | 비어 있지 않은 `GoogleLoginConfig.serverClientId` 가 `.apps.googleusercontent.com` 으로 끝나는 공백 없는 28..256 자가 아닐 때 |
 | `IllegalArgumentException` | `GoogleLoginConfig`·`GoogleSignInExtension` 의 모드가 `BOTTOM_SHEET` 가 아닌데 `filterByAuthorizedAccounts`·`autoSelectEnabled` 를 켰을 때(조용히 무시하지 않는다) |
+| `IllegalArgumentException` | `GoogleLogin.unlink(provider, accountEmail)` 에 `GoogleLogin.provider` 로 만들지 않은 Provider 를 넘기거나 `accountEmail` 이 공백뿐일 때(0.1.0). 메시지에 이메일 값은 넣지 않는다 |
 
 ### 실패 신호 — 공통
 
@@ -195,10 +196,11 @@
 | 10 (DEVELOPER_ERROR) | `CONFIGURATION` — 웹 클라이언트 ID·Android 클라이언트 SHA-1·패키지명 |
 | 4 (SIGN_IN_REQUIRED) | `NOT_SIGNED_IN` — 로그인한 계정 없이 연결 해제 |
 | 14 (INTERRUPTED)·16 (CANCELED) | `INTERRUPTED` |
-| 1·2·3·9·18 (Play 서비스 없음·갱신 필요·꺼짐·잘못됨·갱신 중) | `UNSUPPORTED` |
+| 1·2·3·9·18 (Play 서비스 없음·갱신 필요·꺼짐·잘못됨·갱신 중)·17 (API_NOT_CONNECTED, 0.1.0) | `UNSUPPORTED` |
 | 그 밖(12500 SIGN_IN_FAILED·8 INTERNAL_ERROR 등) | `UNKNOWN` |
 
 - 연결 해제는 Google 서버의 권한 철회(`revokeAccess`)이고 기기 로그인 상태도 지운다.
+- 이 표는 Credential Manager 모드의 연결 해제(`AuthorizationClient.revokeAccess`, 0.1.0)에도 같이 쓴다.
 - 로그아웃·연결 해제는 Credential Manager 상태도 보조로 지운다. 그 보조 정리의 실패는 결과에 넣지 않는다.
 
 ### 실패 신호 — Credential Manager 모드(`BOTTOM_SHEET`·`BUTTON`)
@@ -210,9 +212,16 @@
 | `INTERRUPTED` | `GetCredentialInterruptedException`·`ClearCredentialInterruptedException` |
 | `CONFIGURATION` | `GetCredentialProviderConfigurationException`·`ClearCredentialProviderConfigurationException` — Google Play 서비스·`credentials-play-services-auth` 를 찾지 못함 |
 | `UNSUPPORTED` | `GetCredentialUnsupportedException`·`ClearCredentialUnsupportedException` — 기기가 Credential Manager 를 지원하지 않음 |
-| `UNSUPPORTED` | 연결 해제. 철회는 서버가 Google OAuth 철회 엔드포인트로 한다 |
+| `NOT_SIGNED_IN` (vendorCode `NoAccountToRevoke`) | 연결 해제(0.1.0)인데 철회할 계정을 모름 — 이 Provider 인스턴스로 로그인하지 않았거나(프로세스 재시작 포함) 로그아웃·연결 해제 뒤다. Google 을 부르지 않는다. 로그인 때 받은 이메일을 `GoogleLogin.unlink(provider, accountEmail)` 로 넘긴다 |
+| 위 `ApiException` 표 | 연결 해제(0.1.0)의 `AuthorizationClient.revokeAccess` 실패 — 7·15 `NETWORK`(재시도 가능), 4 `NOT_SIGNED_IN`, 10 `CONFIGURATION`, 17 `UNSUPPORTED` 등 |
+| `UNSUPPORTED` (vendorCode `UnsupportedApiCallException`) | 연결 해제(0.1.0) — 기기의 Google Play 서비스가 `revokeAccess` 를 아직 모름. Google Play 서비스 업데이트를 안내한다 |
 | (재시도) | `BOTTOM_SHEET` 로그인이 `TransactionTooLargeException` 으로 실패 — 버튼 흐름으로 한 번만 다시 시도한다. 결과는 재시도의 결과이고 첫 예외는 `cause.suppressed` 에 붙는다 |
 | `UNKNOWN` | `GetCredentialUnknownException`·`GetCredentialCustomException`·그 밖 하위 타입, Google 이 아닌 자격 증명 타입, 깨진 데이터(`GoogleIdTokenParsingException`), 공백뿐인 ID 토큰 |
 
 vendorCode 는 Credential Manager 예외의 `type` 문자열(예: `android.credentials.GetCredentialException.TYPE_NO_CREDENTIAL`)이다.
 로그아웃은 Credential Manager 상태를 지우고 Google Sign-In 상태도 보조로 지운다(보조 정리의 실패는 결과에 넣지 않는다).
+
+연결 해제(0.1.0)는 화면을 띄우지 않는다. 그래서 동의 화면 취소로 인한 `Cancelled` 는 생기지 않는다(상태 코드 12501 이 오면
+`Cancelled` 로 분류하지만 실제로 관찰한 적은 없다). 주 경로는 그 인스턴스의 마지막 로그인 경로, 모르면 설정 모드다. 주 경로가 실패하면
+기기 상태를 지우지 않고 계정도 기억한 채라 같은 호출로 다시 시도할 수 있다. 주 경로가 성공하면 다른 경로의 철회(계정을 알 때)와
+Credential Manager 상태 지우기를 보조로 하고, 그 실패는 결과에 넣지 않는다.
