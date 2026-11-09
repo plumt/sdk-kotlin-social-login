@@ -88,7 +88,7 @@
 
 ### [Unreleased]
 
-### [0.1.0] - 미발행
+### [0.1.0] - 2026-11-08
 
 #### 추가
 - **Credential Manager 모드(`BUTTON`·`BOTTOM_SHEET`)의 연결 해제.** `AuthorizationClient.revokeAccess` 로 Google 서버에서 이 앱에 준 권한을 철회하고 기기 로그인 상태를 지운다. 화면을 띄우지 않는다. 계정은 그 Provider 인스턴스의 마지막 로그인에서 메모리로 기억한다(기기에 저장하지 않는다)
