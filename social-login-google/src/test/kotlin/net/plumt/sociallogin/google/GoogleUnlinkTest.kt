@@ -37,7 +37,7 @@ class GoogleUnlinkTest {
     private val dispatcher = UnconfinedTestDispatcher()
 
     private fun provider(mode: GoogleSignInMode = GoogleSignInMode.BUTTON) =
-        GoogleLoginProvider(GoogleLoginConfig(CLIENT_ID, mode), gateway, dispatcher)
+        GoogleLoginProvider(googleConfig(CLIENT_ID, mode), gateway, dispatcher)
 
     private fun apiError(code: Int) = ApiException(Status(code))
 
@@ -280,7 +280,7 @@ class GoogleUnlinkTest {
 
     @Test
     fun `설정 안 됨이면 이메일을 넘겨도 Google 을 부르지 않은 CONFIGURATION`() = runTest(dispatcher) {
-        val p = GoogleLoginProvider(GoogleLoginConfig("", GoogleSignInMode.BUTTON), gateway, dispatcher)
+        val p = GoogleLoginProvider(googleConfig("", GoogleSignInMode.BUTTON), gateway, dispatcher)
         assertEquals(FailureKind.CONFIGURATION, GoogleLogin.unlink(p, "saved@example.com").failure().kind)
         assertTrue(gateway.calls.isEmpty())
     }

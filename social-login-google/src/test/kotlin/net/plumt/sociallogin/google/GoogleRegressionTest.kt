@@ -28,7 +28,7 @@ class GoogleRegressionTest {
     @Test
     fun `빈 serverClientId 는 생성 때 던지지 않고 모든 동작이 SDK 를 부르지 않은 CONFIGURATION`() = runTest(dispatcher) {
         for (blank in listOf("", "   ")) {
-            val config = GoogleLoginConfig(blank)
+            val config = googleConfig(blank)
             assertFalse(config.isConfigured)
             val p = GoogleLoginProvider(config, gateway, dispatcher)
             for (r in listOf(p.signIn(activity, SignInOptions.DEFAULT), p.signOut(), p.unlink())) {
@@ -39,6 +39,6 @@ class GoogleRegressionTest {
             }
         }
         assertTrue("SDK 를 부르면 안 된다: ${gateway.calls}", gateway.calls.isEmpty())
-        assertTrue(GoogleLoginConfig(CLIENT_ID).isConfigured)
+        assertTrue(googleConfig(CLIENT_ID).isConfigured)
     }
 }

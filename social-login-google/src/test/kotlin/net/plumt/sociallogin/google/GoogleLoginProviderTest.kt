@@ -24,6 +24,7 @@ import net.plumt.sociallogin.Capability
 import net.plumt.sociallogin.FailureKind
 import net.plumt.sociallogin.ProviderId
 import net.plumt.sociallogin.SignInOptions
+import net.plumt.sociallogin.SocialLoginConfig
 import net.plumt.sociallogin.SocialLoginManager
 import net.plumt.sociallogin.SocialLoginResult
 import net.plumt.sociallogin.google.internal.GoogleCredentials
@@ -149,7 +150,7 @@ class GoogleLoginProviderTest {
     private val gateway = FakeGoogleGateway()
     private val dispatcher = UnconfinedTestDispatcher()
 
-    private fun provider(config: GoogleLoginConfig = GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET)) =
+    private fun provider(config: GoogleLoginConfig = googleConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET)) =
         GoogleLoginProvider(config, gateway, dispatcher)
 
     private fun SocialLoginResult<*>.failure() = this as SocialLoginResult.Failure
@@ -180,7 +181,7 @@ class GoogleLoginProviderTest {
     @Test
     fun `버튼 흐름은 Sign in with Google 옵션을 쓴다`() = runTest(dispatcher) {
         gateway.credential = { googleCredential(type = GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_SIWG_CREDENTIAL) }
-        val result = provider(GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BUTTON)).signIn(activity, SignInOptions.DEFAULT)
+        val result = provider(googleConfig(CLIENT_ID, GoogleSignInMode.BUTTON)).signIn(activity, SignInOptions.DEFAULT)
         assertTrue(result is SocialLoginResult.Success)
         val option = gateway.options.single() as GetSignInWithGoogleOption
         assertEquals(CLIENT_ID, option.serverClientId)
@@ -248,7 +249,7 @@ class GoogleLoginProviderTest {
         assertEquals(FailureKind.UNSUPPORTED, r.kind)
         assertEquals(
             FailureKind.NOT_SIGNED_IN,
-            provider(GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BUTTON)).unlink().failure().kind,
+            provider(googleConfig(CLIENT_ID, GoogleSignInMode.BUTTON)).unlink().failure().kind,
         )
         assertTrue(gateway.calls.isEmpty())
     }
@@ -271,7 +272,7 @@ class GoogleLoginProviderTest {
             gate.await()
             googleCredential()
         }
-        val manager = SocialLoginManager.builder<Activity>().register(provider()).build()
+        val manager = SocialLoginManager.create(SocialLoginConfig.builder<Activity>().register(provider()).build())
         val first = async { manager.signIn(ProviderId.GOOGLE, activity) }
         assertEquals(FailureKind.BUSY, manager.signIn(ProviderId.GOOGLE, activity).failure().kind)
         gate.complete(Unit)
@@ -285,7 +286,7 @@ class GoogleLoginProviderTest {
     @Test
     fun `프로세스 재시작 — 새 Provider 도 같은 설정으로 로그인한다`() = runTest(dispatcher) {
         provider().signIn(activity, SignInOptions.DEFAULT)
-        val restarted = GoogleLoginProvider(GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET), gateway, dispatcher)
+        val restarted = GoogleLoginProvider(googleConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET), gateway, dispatcher)
         assertTrue(restarted.signIn(activity, SignInOptions.DEFAULT) is SocialLoginResult.Success)
         assertEquals(2, gateway.options.size)
     }
@@ -324,16 +325,16 @@ class GoogleCredentialsTest {
     @Test
     fun `옵션 — 시트 선택지와 nonce`() {
         val sheet = GoogleOptions.build(
-            GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET, filterByAuthorizedAccounts = true, autoSelectEnabled = true), "n",
+            googleConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET, filterByAuthorizedAccounts = true, autoSelectEnabled = true), "n",
         ) as GetGoogleIdOption
         assertTrue(sheet.filterByAuthorizedAccounts)
         assertTrue(sheet.autoSelectEnabled)
         assertEquals("n", sheet.nonce)
-        val plain = GoogleOptions.build(GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET), null) as GetGoogleIdOption
+        val plain = GoogleOptions.build(googleConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET), null) as GetGoogleIdOption
         assertFalse(plain.filterByAuthorizedAccounts)
         assertFalse(plain.autoSelectEnabled)
         assertNull(plain.nonce)
-        val button = GoogleOptions.build(GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BUTTON), "m") as GetSignInWithGoogleOption
+        val button = GoogleOptions.build(googleConfig(CLIENT_ID, GoogleSignInMode.BUTTON), "m") as GetSignInWithGoogleOption
         assertEquals("m", button.nonce)
     }
 }

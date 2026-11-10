@@ -17,9 +17,8 @@ public class SignInOptions(
     extensions: Collection<Extension>,
 ) {
 
-    /** 수단별 추가 선택 사항 없이 [nonce] 만 둔다. 0.0.1 의 생성자 시그니처(`()`·`(String)`)를 그대로 지킨다. */
-    @JvmOverloads
-    public constructor(nonce: String? = null) : this(nonce, emptyList())
+    /** 수단별 추가 선택 사항 없이 [nonce] 만 둔다. 둘 다 없으면 [DEFAULT] 를 쓴다. */
+    public constructor(nonce: String?) : this(nonce, emptyList())
 
     public val extensions: List<Extension> = extensions.toList()
 
@@ -70,6 +69,6 @@ public class SignInOptions(
 
         /** 아무 선택 사항도 없는 기본값. */
         @JvmField
-        public val DEFAULT: SignInOptions = SignInOptions()
+        public val DEFAULT: SignInOptions = SignInOptions(null, emptyList())
     }
 }

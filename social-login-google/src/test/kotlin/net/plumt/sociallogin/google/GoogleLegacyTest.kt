@@ -16,6 +16,7 @@ import net.plumt.sociallogin.Capability
 import net.plumt.sociallogin.FailureKind
 import net.plumt.sociallogin.ProviderId
 import net.plumt.sociallogin.SignInOptions
+import net.plumt.sociallogin.SocialLoginConfig
 import net.plumt.sociallogin.SocialLoginManager
 import net.plumt.sociallogin.SocialLoginResult
 import net.plumt.sociallogin.google.internal.GoogleErrors
@@ -41,7 +42,7 @@ class GoogleLegacyTest {
     private val gateway = FakeGoogleGateway()
     private val dispatcher = UnconfinedTestDispatcher()
 
-    private fun provider(config: GoogleLoginConfig = GoogleLoginConfig(CLIENT_ID)) =
+    private fun provider(config: GoogleLoginConfig = googleConfig(CLIENT_ID)) =
         GoogleLoginProvider(config, gateway, dispatcher)
 
     private fun SocialLoginResult<*>.failure() = this as SocialLoginResult.Failure
@@ -221,7 +222,7 @@ class GoogleLegacyTest {
     @Test
     fun `로그아웃 — Credential Manager 모드의 보조 Google Sign-In 정리 실패는 결과에 넣지 않는다`() = runTest(dispatcher) {
         gateway.legacySignOut = { throw apiError(GoogleErrors.STATUS_SERVICE_MISSING) }
-        assertEquals(SocialLoginResult.Success(Unit), provider(GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BUTTON)).signOut())
+        assertEquals(SocialLoginResult.Success(Unit), provider(googleConfig(CLIENT_ID, GoogleSignInMode.BUTTON)).signOut())
     }
 
     @Test
@@ -259,7 +260,7 @@ class GoogleLegacyTest {
         // 설정이 시트여도 확장으로 기본 모드를 고를 수 있다
         gateway.calls.clear()
         val toLegacy = SignInOptions(null, listOf(GoogleSignInExtension(GoogleSignInMode.LEGACY_GOOGLE_SIGN_IN)))
-        assertTrue(provider(GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET)).signIn(activity, toLegacy) is SocialLoginResult.Success)
+        assertTrue(provider(googleConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET)).signIn(activity, toLegacy) is SocialLoginResult.Success)
         assertEquals(listOf("legacyIntent", "host", "parse"), gateway.calls)
     }
 
@@ -280,7 +281,7 @@ class GoogleLegacyTest {
 
     @Test
     fun `Manager 를 거쳐도 기본 모드의 연결 해제가 불린다`() = runTest(dispatcher) {
-        val m = SocialLoginManager.builder<Activity>().register(provider()).build()
+        val m = SocialLoginManager.create(SocialLoginConfig.builder<Activity>().register(provider()).build())
         assertEquals(SocialLoginResult.Success(Unit), m.unlink(ProviderId.GOOGLE))
         assertTrue(gateway.calls.contains("revoke"))
     }

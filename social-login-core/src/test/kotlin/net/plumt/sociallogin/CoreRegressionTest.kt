@@ -24,9 +24,9 @@ class CallTimeoutTest {
     private val naver = FakeProvider(ProviderId.NAVER)
 
     private fun manager(timeout: Long? = null, policy: ConcurrencyPolicy = ConcurrencyPolicy.REJECT): SocialLoginManager<String> {
-        val b = SocialLoginManager.builder<String>().register(kakao).register(naver).concurrencyPolicy(policy)
+        val b = SocialLoginConfig.builder<String>().register(kakao).register(naver).concurrencyPolicy(policy)
         if (timeout != null) b.callTimeoutMillis(timeout)
-        return b.build()
+        return SocialLoginManager.create(b.build())
     }
 
     @Test
@@ -95,11 +95,11 @@ class CallTimeoutTest {
     fun `상한은 1 이상`() {
         for (bad in listOf(0L, -1L, Long.MIN_VALUE)) {
             val e = assertThrows(IllegalArgumentException::class.java) {
-                SocialLoginManager.builder<String>().callTimeoutMillis(bad)
+                SocialLoginConfig.builder<String>().callTimeoutMillis(bad)
             }
             assertTrue(e.message!!.contains("받은 값 $bad"))
         }
-        SocialLoginManager.builder<String>().callTimeoutMillis(1).callTimeoutMillis(Long.MAX_VALUE).build()
+        SocialLoginManager.create(SocialLoginConfig.builder<String>().callTimeoutMillis(1).callTimeoutMillis(Long.MAX_VALUE).build())
     }
 }
 

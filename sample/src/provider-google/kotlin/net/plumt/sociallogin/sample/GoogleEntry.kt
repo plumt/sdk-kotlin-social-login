@@ -5,4 +5,4 @@ import net.plumt.sociallogin.google.GoogleLogin
 import net.plumt.sociallogin.google.GoogleLoginConfig
 
 internal fun google(context: Context) =
-    GoogleLogin.provider(context, GoogleLoginConfig(serverClientId = "sample.apps.googleusercontent.com"))
+    GoogleLogin.provider(context, GoogleLoginConfig.builder("sample.apps.googleusercontent.com").build())

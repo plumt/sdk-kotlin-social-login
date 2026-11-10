@@ -22,7 +22,9 @@ public sealed interface SocialLoginResult<out T> {
     }
 
     /** 사용자가 로그인 화면을 닫거나 뒤로 갔다. */
-    public data object Cancelled : SocialLoginResult<Nothing>
+    public object Cancelled : SocialLoginResult<Nothing> {
+        override fun toString(): String = "Cancelled"
+    }
 
     /**
      * 실패.
@@ -38,10 +40,17 @@ public sealed interface SocialLoginResult<out T> {
     public class Failure(
         public val kind: FailureKind,
         public val message: String,
-        public val providerId: ProviderId? = null,
-        public val vendorCode: String? = null,
-        public val cause: Throwable? = null,
+        public val providerId: ProviderId?,
+        public val vendorCode: String?,
+        public val cause: Throwable?,
     ) : SocialLoginResult<Nothing> {
+
+        /** 수단·벤더 코드·원인 없는 실패. */
+        public constructor(kind: FailureKind, message: String) : this(kind, message, null, null, null)
+
+        /** 벤더 코드·원인 없는 [providerId] 의 실패. */
+        public constructor(kind: FailureKind, message: String, providerId: ProviderId?) :
+            this(kind, message, providerId, null, null)
 
         init {
             require(message.isNotBlank()) { "message 가 공백뿐이다(길이 ${message.length})" }

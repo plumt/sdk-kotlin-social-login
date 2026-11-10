@@ -9,6 +9,6 @@
             android:name=".internal.GoogleSignInHostActivity"
             android:excludeFromRecents="true"
             android:exported="false"
-            android:theme="@style/SocialLoginGoogleHostTheme" />
+            android:theme="@style/social_login_google_host_theme" />
     </application>
 </manifest>

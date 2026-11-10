@@ -36,10 +36,10 @@ class KakaoLoginConfigTest {
 
     @Test
     fun `기본값과 경계`() {
-        val c = KakaoLoginConfig("a")
+        val c = kakaoConfig("a")
         assertTrue(c.useKakaoTalk)
         assertEquals("a", c.nativeAppKey)
-        KakaoLoginConfig("A1".repeat(KakaoLoginConfig.MAX_KEY_LENGTH / 2))
+        kakaoConfig("A1".repeat(KakaoLoginConfig.MAX_KEY_LENGTH / 2))
         assertEquals(128, KakaoLoginConfig.MAX_KEY_LENGTH)
     }
 
@@ -47,7 +47,7 @@ class KakaoLoginConfigTest {
     fun `틀린 키는 길이만 알리고 거절`() {
         // 빈 키·공백뿐인 키는 "설정 안 됨" 으로 받는다(0.0.2) — KakaoRegressionTest
         listOf("abc def", "키값", "abc-123", "abc\n", "a".repeat(129), "YOUR_KAKAO_NATIVE_APP_KEY").forEach { bad ->
-            val e = assertThrows(IllegalArgumentException::class.java) { KakaoLoginConfig(bad) }
+            val e = assertThrows(IllegalArgumentException::class.java) { kakaoConfig(bad) }
             assertTrue(e.message!!.contains("받은 길이 ${bad.length}"))
             if (bad.isNotBlank()) assertFalse(e.message!!.contains(bad))
         }
@@ -55,13 +55,13 @@ class KakaoLoginConfigTest {
 
     @Test
     fun `toString 은 키를 가린다, equals 는 두 필드를 본다`() {
-        val c = KakaoLoginConfig("secretkey0123", useKakaoTalk = false)
+        val c = kakaoConfig("secretkey0123", useKakaoTalk = false)
         assertFalse(c.toString().contains("secretkey0123"))
         assertEquals("KakaoLoginConfig(nativeAppKey=<redacted>, useKakaoTalk=false)", c.toString())
-        assertEquals(c, KakaoLoginConfig("secretkey0123", false))
-        assertEquals(c.hashCode(), KakaoLoginConfig("secretkey0123", false).hashCode())
-        assertNotEquals(c, KakaoLoginConfig("secretkey0123", true))
-        assertNotEquals(c, KakaoLoginConfig("otherkey", false))
+        assertEquals(c, kakaoConfig("secretkey0123", false))
+        assertEquals(c.hashCode(), kakaoConfig("secretkey0123", false).hashCode())
+        assertNotEquals(c, kakaoConfig("secretkey0123", true))
+        assertNotEquals(c, kakaoConfig("otherkey", false))
         assertNotEquals(c as Any, "secretkey0123")
     }
 
@@ -72,7 +72,7 @@ class KakaoLoginConfigTest {
         repeat(3_000) {
             val key = buildString { repeat(random.nextInt(0, 140)) { append(chars[random.nextInt(chars.size)]) } }
             try {
-                KakaoLoginConfig(key)
+                kakaoConfig(key)
             } catch (_: IllegalArgumentException) {
             }
         }
@@ -86,7 +86,7 @@ class KakaoLoginFactoryTest {
     @Test
     fun `팩토리는 SDK 를 건드리지 않고 Provider 를 만든다`() {
         val app = ApplicationProvider.getApplicationContext<Application>()
-        val p = KakaoLogin.provider(app, KakaoLoginConfig("abc123"))
+        val p = KakaoLogin.provider(app, kakaoConfig("abc123"))
         assertEquals(ProviderId.KAKAO, p.id)
         assertSame(ProviderId.KAKAO, KakaoLogin.PROVIDER_ID)
         assertEquals(setOf(Capability.SIGN_OUT, Capability.UNLINK, Capability.REFRESH_TOKEN), p.capabilities)
@@ -95,7 +95,7 @@ class KakaoLoginFactoryTest {
     @Test
     fun `Activity Context 를 넘겨도 된다`() {
         val activity = org.robolectric.Robolectric.buildActivity(Activity::class.java).get()
-        assertEquals(ProviderId.KAKAO, KakaoLogin.provider(activity, KakaoLoginConfig("abc123")).id)
+        assertEquals(ProviderId.KAKAO, KakaoLogin.provider(activity, kakaoConfig("abc123")).id)
     }
 }
 

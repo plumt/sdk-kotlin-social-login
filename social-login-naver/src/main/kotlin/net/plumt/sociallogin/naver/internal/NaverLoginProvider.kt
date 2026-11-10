@@ -123,6 +123,7 @@ internal class NaverLoginProvider(
                 message = "네이버 SDK 초기화 실패($operation): ${e.javaClass.name}",
                 providerId = id,
                 cause = e,
+                vendorCode = null,
             )
         }
         return try {
@@ -156,6 +157,8 @@ internal class NaverLoginProvider(
                 idToken = null,
                 refreshToken = stored.refreshToken?.takeIf { it.isNotBlank() },
                 accessTokenExpiresAtMillis = expiresAtMillis,
+                refreshTokenExpiresAtMillis = null,
+                scopes = emptySet(),
             )
         }
     }

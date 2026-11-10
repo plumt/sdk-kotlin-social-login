@@ -12,8 +12,8 @@ import net.plumt.sociallogin.kakao.internal.KakaoLoginProvider
  * 카카오 로그인 Provider 를 만드는 진입점.
  *
  * ```kotlin
- * val kakao = KakaoLogin.provider(appContext, KakaoLoginConfig(nativeAppKey = BuildConfig.KAKAO_NATIVE_APP_KEY))
- * val manager = SocialLoginManager.builder<Activity>().register(kakao).build()
+ * val kakao = KakaoLogin.provider(appContext, KakaoLoginConfig.builder(BuildConfig.KAKAO_NATIVE_APP_KEY).build())
+ * val manager = SocialLoginManager.create(SocialLoginConfig.builder<Activity>().register(kakao).build())
  * ```
  *
  * - 카카오 SDK 초기화는 첫 호출 때 한 번, 프로세스 전역으로 한다. `Application.onCreate` 를 고칠 필요가 없다.

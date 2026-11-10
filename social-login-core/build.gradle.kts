@@ -13,6 +13,8 @@ java {
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        // 공개 인터페이스의 기본 구현을 Java 기본 메서드로만 낸다(DefaultImpls 없음) — 인터페이스에 함수를 더해도 구현체가 깨지지 않는다
+        jvmDefault.set(org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode.NO_COMPATIBILITY)
     }
     // 가시성을 적지 않은 선언은 컴파일 오류 — 공개 API 는 의도한 것만 연다
     explicitApi()
@@ -51,6 +53,16 @@ kover {
 // 테스트 코드만 코루틴 테스트 API(ExperimentalCoroutinesApi)를 쓴다. 본 코드에는 opt-in 을 걸지 않는다
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     if (name.contains("Test")) compilerOptions.optIn.add("kotlinx.coroutines.ExperimentalCoroutinesApi")
+}
+
+// 문서 일치 테스트(DocsConsistencyTest)가 읽는 공개 문서 — 바뀌면 테스트를 다시 돌린다
+tasks.withType<Test>().configureEach {
+    inputs.files(
+        rootProject.file("README.md"),
+        rootProject.file("CHANGELOG.md"),
+        rootProject.file("ERRORS.md"),
+        rootProject.fileTree(rootProject.projectDir) { include("social-login-*/gradle.properties") },
+    ).withPropertyName("publicDocs")
 }
 
 tasks.named("check") { dependsOn("koverVerify") }

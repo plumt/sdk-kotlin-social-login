@@ -84,21 +84,21 @@ class SocialTokenTest {
             assertTrue(e1.message!!.contains("길이 ${blank.length}"))
             val e2 = assertThrows(IllegalArgumentException::class.java) { SocialToken("a", blank) }
             assertTrue(e2.message!!.startsWith("idToken"))
-            val e3 = assertThrows(IllegalArgumentException::class.java) { SocialToken("a", null, refreshToken = blank) }
+            val e3 = assertThrows(IllegalArgumentException::class.java) { SocialToken("a", null, refreshToken = blank, accessTokenExpiresAtMillis = null, refreshTokenExpiresAtMillis = null, scopes = emptySet()) }
             assertTrue(e3.message!!.startsWith("refreshToken"))
         }
     }
 
     @Test
     fun `만료 시각 경계값`() {
-        SocialToken("a", null, accessTokenExpiresAtMillis = 0, refreshTokenExpiresAtMillis = 0)
-        SocialToken("a", null, accessTokenExpiresAtMillis = Long.MAX_VALUE, refreshTokenExpiresAtMillis = Long.MAX_VALUE)
+        SocialToken("a", null, accessTokenExpiresAtMillis = 0, refreshTokenExpiresAtMillis = 0, refreshToken = null, scopes = emptySet())
+        SocialToken("a", null, accessTokenExpiresAtMillis = Long.MAX_VALUE, refreshTokenExpiresAtMillis = Long.MAX_VALUE, refreshToken = null, scopes = emptySet())
         val e1 = assertThrows(IllegalArgumentException::class.java) {
-            SocialToken("a", null, accessTokenExpiresAtMillis = -1)
+            SocialToken("a", null, accessTokenExpiresAtMillis = -1, refreshToken = null, refreshTokenExpiresAtMillis = null, scopes = emptySet())
         }
         assertTrue(e1.message!!.contains("받은 값 -1"))
         val e2 = assertThrows(IllegalArgumentException::class.java) {
-            SocialToken("a", null, refreshTokenExpiresAtMillis = Long.MIN_VALUE)
+            SocialToken("a", null, refreshTokenExpiresAtMillis = Long.MIN_VALUE, refreshToken = null, accessTokenExpiresAtMillis = null, scopes = emptySet())
         }
         assertTrue(e2.message!!.contains("refreshTokenExpiresAtMillis"))
     }
@@ -106,16 +106,16 @@ class SocialTokenTest {
     @Test
     fun `공백 scope 거절, 유니코드 scope 허용`() {
         val e = assertThrows(IllegalArgumentException::class.java) {
-            SocialToken("a", null, scopes = setOf("profile", " "))
+            SocialToken("a", null, scopes = setOf("profile", " "), refreshToken = null, accessTokenExpiresAtMillis = null, refreshTokenExpiresAtMillis = null)
         }
         assertTrue(e.message!!.contains("scopes"))
-        assertEquals(setOf("프로필", "account_email"), SocialToken("a", null, scopes = setOf("프로필", "account_email")).scopes)
+        assertEquals(setOf("프로필", "account_email"), SocialToken("a", null, scopes = setOf("프로필", "account_email"), refreshToken = null, accessTokenExpiresAtMillis = null, refreshTokenExpiresAtMillis = null).scopes)
     }
 
     @Test
     fun `만료 판정 — 모르면 false, 경계에서 만료`() {
         assertFalse(SocialToken("a", null).isAccessTokenExpired(Long.MAX_VALUE))
-        val t = SocialToken("a", null, accessTokenExpiresAtMillis = 1_000)
+        val t = SocialToken("a", null, accessTokenExpiresAtMillis = 1_000, refreshToken = null, refreshTokenExpiresAtMillis = null, scopes = emptySet())
         assertFalse(t.isAccessTokenExpired(999))
         assertTrue(t.isAccessTokenExpired(1_000))
         assertTrue(t.isAccessTokenExpired(1_001))
@@ -178,13 +178,13 @@ class SocialAccountTest {
 
     @Test
     fun `공백 문자열은 거절하고 길이만 알린다`() {
-        val e1 = assertThrows(IllegalArgumentException::class.java) { SocialAccount(ProviderId.GOOGLE, token, email = " ") }
+        val e1 = assertThrows(IllegalArgumentException::class.java) { SocialAccount(ProviderId.GOOGLE, token, email = " ", displayName = null, profileImageUrl = null) }
         assertTrue(e1.message!!.startsWith("email"))
         assertTrue(e1.message!!.contains("길이 1"))
-        val e2 = assertThrows(IllegalArgumentException::class.java) { SocialAccount(ProviderId.GOOGLE, token, displayName = "") }
+        val e2 = assertThrows(IllegalArgumentException::class.java) { SocialAccount(ProviderId.GOOGLE, token, displayName = "", email = null, profileImageUrl = null) }
         assertTrue(e2.message!!.startsWith("displayName"))
         val e3 = assertThrows(IllegalArgumentException::class.java) {
-            SocialAccount(ProviderId.GOOGLE, token, profileImageUrl = "\n")
+            SocialAccount(ProviderId.GOOGLE, token, profileImageUrl = "\n", email = null, displayName = null)
         }
         assertTrue(e3.message!!.startsWith("profileImageUrl"))
     }
@@ -223,9 +223,9 @@ class SignInOptionsTest {
 
     @Test
     fun `기본값`() {
-        assertNull(SignInOptions().nonce)
+        assertNull(SignInOptions(null).nonce)
         assertNull(SignInOptions.DEFAULT.nonce)
-        assertEquals(SignInOptions(), SignInOptions.DEFAULT)
+        assertEquals(SignInOptions(null), SignInOptions.DEFAULT)
         assertEquals(512, SignInOptions.MAX_NONCE_LENGTH)
     }
 
@@ -262,7 +262,7 @@ class SignInOptionsTest {
         assertNotEquals(SignInOptions("n"), SignInOptions("m"))
         assertNotEquals(SignInOptions("n") as Any, "n")
         assertFalse(SignInOptions("nonce-value-123").toString().contains("nonce-value-123"))
-        assertEquals("SignInOptions(nonce=null)", SignInOptions().toString())
+        assertEquals("SignInOptions(nonce=null)", SignInOptions.DEFAULT.toString())
         assertEquals("SignInOptions(nonce=<redacted>)", SignInOptions("x").toString())
     }
 }

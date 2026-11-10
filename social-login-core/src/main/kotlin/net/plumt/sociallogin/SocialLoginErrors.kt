@@ -39,8 +39,8 @@ public object SocialLoginErrors {
     public fun failureOf(
         throwable: Throwable,
         message: String,
-        providerId: ProviderId? = null,
-        vendorCode: String? = null,
+        providerId: ProviderId?,
+        vendorCode: String?,
     ): SocialLoginResult.Failure = SocialLoginResult.Failure(
         kind = classify(throwable),
         message = message,
@@ -48,6 +48,14 @@ public object SocialLoginErrors {
         vendorCode = vendorCode,
         cause = throwable,
     )
+
+    /** 수단·벤더 코드 없이 [failureOf] 한다. @throws IllegalArgumentException 위 [failureOf] 와 같다. */
+    public fun failureOf(throwable: Throwable, message: String): SocialLoginResult.Failure =
+        failureOf(throwable, message, null, null)
+
+    /** 벤더 코드 없이 [failureOf] 한다. @throws IllegalArgumentException 위 [failureOf] 와 같다. */
+    public fun failureOf(throwable: Throwable, message: String, providerId: ProviderId?): SocialLoginResult.Failure =
+        failureOf(throwable, message, providerId, null)
 
     private fun hasNetworkCause(throwable: Throwable): Boolean {
         var current: Throwable? = throwable

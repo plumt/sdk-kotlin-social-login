@@ -10,6 +10,8 @@ plugins {
 android {
     namespace = "net.plumt.sociallogin.google"
     compileSdk = 36
+    // 소비 앱의 리소스와 이름이 겹치지 않게 접두어를 강제한다(스타일은 SocialLogin 낙타 표기도 허용된다)
+    resourcePrefix = "social_login_"
 
     defaultConfig {
         // Credential Manager·Google Sign-In 은 21 이지만 다른 수단(카카오 SDK v2)과 맞춰 23 으로 둔다
@@ -22,6 +24,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
+    lint {
+        // lint 오류가 있으면 빌드를 멈춘다
+        abortOnError = true
+    }
+
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }
@@ -30,6 +37,8 @@ android {
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        // 공개 인터페이스의 기본 구현을 Java 기본 메서드로만 낸다(DefaultImpls 없음) — 인터페이스에 함수를 더해도 구현체가 깨지지 않는다
+        jvmDefault.set(org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode.NO_COMPATIBILITY)
     }
     // 가시성을 적지 않은 선언은 컴파일 오류 — 공개 API 는 의도한 것만 연다
     explicitApi()

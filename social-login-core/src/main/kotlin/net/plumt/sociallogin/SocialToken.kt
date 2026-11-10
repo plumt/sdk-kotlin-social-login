@@ -21,11 +21,14 @@ package net.plumt.sociallogin
 public class SocialToken(
     public val accessToken: String?,
     public val idToken: String?,
-    public val refreshToken: String? = null,
-    public val accessTokenExpiresAtMillis: Long? = null,
-    public val refreshTokenExpiresAtMillis: Long? = null,
-    public val scopes: Set<String> = emptySet(),
+    public val refreshToken: String?,
+    public val accessTokenExpiresAtMillis: Long?,
+    public val refreshTokenExpiresAtMillis: Long?,
+    public val scopes: Set<String>,
 ) {
+
+    /** 갱신 토큰·만료 시각·범위 없이 만든다. @throws IllegalArgumentException 위 생성자와 같다. */
+    public constructor(accessToken: String?, idToken: String?) : this(accessToken, idToken, null, null, null, emptySet())
 
     init {
         require(accessToken != null || idToken != null) {

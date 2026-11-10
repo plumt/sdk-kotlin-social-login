@@ -126,15 +126,15 @@ class GoogleLoginConfigTest {
 
     @Test
     fun `기본값과 경계`() {
-        val c = GoogleLoginConfig(CLIENT_ID)
+        val c = googleConfig(CLIENT_ID)
         // 0.0.2 부터 기본은 Google Sign-In 계정 선택이다
         assertEquals(GoogleSignInMode.LEGACY_GOOGLE_SIGN_IN, c.mode)
         assertFalse(c.filterByAuthorizedAccounts)
         assertFalse(c.autoSelectEnabled)
-        GoogleLoginConfig("a" + GoogleLoginConfig.CLIENT_ID_SUFFIX)
-        GoogleLoginConfig("a".repeat(GoogleLoginConfig.MAX_CLIENT_ID_LENGTH - GoogleLoginConfig.CLIENT_ID_SUFFIX.length) + GoogleLoginConfig.CLIENT_ID_SUFFIX)
+        googleConfig("a" + GoogleLoginConfig.CLIENT_ID_SUFFIX)
+        googleConfig("a".repeat(GoogleLoginConfig.MAX_CLIENT_ID_LENGTH - GoogleLoginConfig.CLIENT_ID_SUFFIX.length) + GoogleLoginConfig.CLIENT_ID_SUFFIX)
         assertEquals(256, GoogleLoginConfig.MAX_CLIENT_ID_LENGTH)
-        GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BUTTON)
+        googleConfig(CLIENT_ID, GoogleSignInMode.BUTTON)
     }
 
     @Test
@@ -145,7 +145,7 @@ class GoogleLoginConfigTest {
             GoogleLoginConfig.CLIENT_ID_SUFFIX, "1234-abc", "1234 abc.apps.googleusercontent.com",
             "YOUR_GOOGLE_WEB_CLIENT_ID", tooLong, "가.apps.googleusercontent.com\n",
         ).forEach { bad ->
-            val e = assertThrows(IllegalArgumentException::class.java) { GoogleLoginConfig(bad) }
+            val e = assertThrows(IllegalArgumentException::class.java) { googleConfig(bad) }
             assertTrue(e.message!!.contains("받은 길이 ${bad.length}"))
             if (bad.length > 30) assertFalse(e.message!!.contains(bad))
         }
@@ -156,7 +156,7 @@ class GoogleLoginConfigTest {
         for (mode in listOf(GoogleSignInMode.BUTTON, GoogleSignInMode.LEGACY_GOOGLE_SIGN_IN)) {
             listOf(true to false, false to true, true to true).forEach { (filter, auto) ->
                 val e = assertThrows(IllegalArgumentException::class.java) {
-                    GoogleLoginConfig(CLIENT_ID, mode, filter, auto)
+                    googleConfig(CLIENT_ID, mode, filter, auto)
                 }
                 assertTrue(e.message!!.contains("BOTTOM_SHEET"))
                 assertTrue(e.message!!.contains("mode=$mode"))
@@ -168,14 +168,14 @@ class GoogleLoginConfigTest {
 
     @Test
     fun `toString 은 클라이언트 ID 를 가린다, equals 는 모든 필드를 본다`() {
-        val c = GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET, true, false)
+        val c = googleConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET, true, false)
         assertFalse(c.toString().contains(CLIENT_ID))
-        assertEquals(c, GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET, true, false))
-        assertEquals(c.hashCode(), GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET, true, false).hashCode())
-        assertNotEquals(c, GoogleLoginConfig("x$CLIENT_ID", GoogleSignInMode.BOTTOM_SHEET, true, false))
-        assertNotEquals(c, GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BUTTON))
-        assertNotEquals(c, GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET, false, false))
-        assertNotEquals(c, GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET, true, true))
+        assertEquals(c, googleConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET, true, false))
+        assertEquals(c.hashCode(), googleConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET, true, false).hashCode())
+        assertNotEquals(c, googleConfig("x$CLIENT_ID", GoogleSignInMode.BOTTOM_SHEET, true, false))
+        assertNotEquals(c, googleConfig(CLIENT_ID, GoogleSignInMode.BUTTON))
+        assertNotEquals(c, googleConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET, false, false))
+        assertNotEquals(c, googleConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET, true, true))
         assertNotEquals(c as Any, CLIENT_ID)
         // 0.0.1 상수의 순서를 지키고 새 상수는 뒤에 붙인다
         assertEquals(listOf("BOTTOM_SHEET", "BUTTON", "LEGACY_GOOGLE_SIGN_IN"), GoogleSignInMode.entries.map { it.name })
@@ -188,7 +188,7 @@ class GoogleLoginConfigTest {
         repeat(3_000) {
             val id = buildString { repeat(random.nextInt(0, 12)) { append(pieces[random.nextInt(pieces.size)]) } }
             try {
-                GoogleLoginConfig(id, GoogleSignInMode.entries.random(random), random.nextBoolean(), random.nextBoolean())
+                googleConfig(id, GoogleSignInMode.entries.random(random), random.nextBoolean(), random.nextBoolean())
             } catch (_: IllegalArgumentException) {
             }
         }
@@ -202,13 +202,13 @@ class GoogleLoginFactoryTest {
     @Test
     fun `팩토리는 Provider 를 만든다`() {
         val app = ApplicationProvider.getApplicationContext<Application>()
-        val p = GoogleLogin.provider(app, GoogleLoginConfig(CLIENT_ID))
+        val p = GoogleLogin.provider(app, googleConfig(CLIENT_ID))
         assertEquals(ProviderId.GOOGLE, p.id)
         assertSame(ProviderId.GOOGLE, GoogleLogin.PROVIDER_ID)
         assertEquals(setOf(Capability.SIGN_OUT, Capability.UNLINK), p.capabilities)
-        val sheet = GoogleLogin.provider(app, GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET))
+        val sheet = GoogleLogin.provider(app, googleConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET))
         assertEquals(setOf(Capability.SIGN_OUT, Capability.UNLINK), sheet.capabilities)
         val activity = Robolectric.buildActivity(Activity::class.java).get()
-        assertEquals(ProviderId.GOOGLE, GoogleLogin.provider(activity, GoogleLoginConfig(CLIENT_ID)).id)
+        assertEquals(ProviderId.GOOGLE, GoogleLogin.provider(activity, googleConfig(CLIENT_ID)).id)
     }
 }

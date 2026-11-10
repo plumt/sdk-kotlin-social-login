@@ -53,7 +53,7 @@ class SocialLoginResultTest {
         val e1 = assertThrows(IllegalArgumentException::class.java) { SocialLoginResult.Failure(FailureKind.UNKNOWN, " ") }
         assertTrue(e1.message!!.contains("message"))
         val e2 = assertThrows(IllegalArgumentException::class.java) {
-            SocialLoginResult.Failure(FailureKind.UNKNOWN, "m", vendorCode = "")
+            SocialLoginResult.Failure(FailureKind.UNKNOWN, "m", vendorCode = "", providerId = null, cause = null)
         }
         assertTrue(e2.message!!.contains("vendorCode"))
     }

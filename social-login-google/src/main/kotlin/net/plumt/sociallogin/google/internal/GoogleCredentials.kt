@@ -40,17 +40,17 @@ internal object GoogleOptions {
         build(config.serverClientId, GoogleRequest.of(config, null).withMode(mode), nonce)
 
     /** @throws IllegalArgumentException [GoogleSignInMode.LEGACY_GOOGLE_SIGN_IN] 처럼 Credential Manager 옵션이 없는 모드일 때. */
-    fun build(serverClientId: String, request: GoogleRequest, nonce: String?): CredentialOption = when (request.mode) {
-        GoogleSignInMode.BOTTOM_SHEET -> GetGoogleIdOption.Builder()
+    fun build(serverClientId: String, request: GoogleRequest, nonce: String?): CredentialOption = when (request.mode.kind) {
+        GoogleSignInMode.Kind.BOTTOM_SHEET -> GetGoogleIdOption.Builder()
             .setServerClientId(serverClientId)
             .setFilterByAuthorizedAccounts(request.filterByAuthorizedAccounts)
             .setAutoSelectEnabled(request.autoSelectEnabled)
             .apply { if (nonce != null) setNonce(nonce) }
             .build()
-        GoogleSignInMode.BUTTON -> GetSignInWithGoogleOption.Builder(serverClientId)
+        GoogleSignInMode.Kind.BUTTON -> GetSignInWithGoogleOption.Builder(serverClientId)
             .apply { if (nonce != null) setNonce(nonce) }
             .build()
-        GoogleSignInMode.LEGACY_GOOGLE_SIGN_IN ->
+        GoogleSignInMode.Kind.LEGACY_GOOGLE_SIGN_IN ->
             throw IllegalArgumentException("LEGACY_GOOGLE_SIGN_IN 은 Credential Manager 옵션이 없다")
     }
 }
@@ -103,6 +103,7 @@ internal object GoogleCredentials {
                 message = "Google ID 토큰이 아닌 자격 증명을 받았다: ${credential.type}",
                 providerId = ID,
                 vendorCode = credential.type,
+                cause = null,
             )
         }
         val google = GoogleIdTokenCredential.createFrom(credential.data)

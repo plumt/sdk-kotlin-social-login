@@ -22,10 +22,13 @@ package net.plumt.sociallogin
 public class SocialAccount(
     public val providerId: ProviderId,
     public val token: SocialToken,
-    public val email: String? = null,
-    public val displayName: String? = null,
-    public val profileImageUrl: String? = null,
+    public val email: String?,
+    public val displayName: String?,
+    public val profileImageUrl: String?,
 ) {
+
+    /** 이메일·이름·이미지 없이 만든다(카카오·네이버처럼 토큰만 오는 수단). */
+    public constructor(providerId: ProviderId, token: SocialToken) : this(providerId, token, null, null, null)
 
     init {
         require(email == null || email.isNotBlank()) { "email 이 공백뿐이다(길이 ${email?.length}). 없으면 null 을 넣는다" }

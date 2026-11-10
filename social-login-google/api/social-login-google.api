@@ -9,8 +9,7 @@ public final class net/plumt/sociallogin/google/GoogleLoginConfig {
 	public static final field CLIENT_ID_SUFFIX Ljava/lang/String;
 	public static final field Companion Lnet/plumt/sociallogin/google/GoogleLoginConfig$Companion;
 	public static final field MAX_CLIENT_ID_LENGTH I
-	public fun <init> (Ljava/lang/String;Lnet/plumt/sociallogin/google/GoogleSignInMode;ZZ)V
-	public synthetic fun <init> (Ljava/lang/String;Lnet/plumt/sociallogin/google/GoogleSignInMode;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static final fun builder (Ljava/lang/String;)Lnet/plumt/sociallogin/google/GoogleLoginConfig$Builder;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAutoSelectEnabled ()Z
 	public final fun getFilterByAuthorizedAccounts ()Z
@@ -21,12 +20,20 @@ public final class net/plumt/sociallogin/google/GoogleLoginConfig {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class net/plumt/sociallogin/google/GoogleLoginConfig$Builder {
+	public final fun autoSelectEnabled (Z)Lnet/plumt/sociallogin/google/GoogleLoginConfig$Builder;
+	public final fun build ()Lnet/plumt/sociallogin/google/GoogleLoginConfig;
+	public final fun filterByAuthorizedAccounts (Z)Lnet/plumt/sociallogin/google/GoogleLoginConfig$Builder;
+	public final fun mode (Lnet/plumt/sociallogin/google/GoogleSignInMode;)Lnet/plumt/sociallogin/google/GoogleLoginConfig$Builder;
+}
+
 public final class net/plumt/sociallogin/google/GoogleLoginConfig$Companion {
+	public final fun builder (Ljava/lang/String;)Lnet/plumt/sociallogin/google/GoogleLoginConfig$Builder;
 }
 
 public final class net/plumt/sociallogin/google/GoogleSignInExtension : net/plumt/sociallogin/SignInOptions$Extension {
+	public fun <init> (Lnet/plumt/sociallogin/google/GoogleSignInMode;)V
 	public fun <init> (Lnet/plumt/sociallogin/google/GoogleSignInMode;ZZ)V
-	public synthetic fun <init> (Lnet/plumt/sociallogin/google/GoogleSignInMode;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAutoSelectEnabled ()Z
 	public final fun getFilterByAuthorizedAccounts ()Z
@@ -35,12 +42,17 @@ public final class net/plumt/sociallogin/google/GoogleSignInExtension : net/plum
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class net/plumt/sociallogin/google/GoogleSignInMode : java/lang/Enum {
+public final class net/plumt/sociallogin/google/GoogleSignInMode {
 	public static final field BOTTOM_SHEET Lnet/plumt/sociallogin/google/GoogleSignInMode;
 	public static final field BUTTON Lnet/plumt/sociallogin/google/GoogleSignInMode;
+	public static final field Companion Lnet/plumt/sociallogin/google/GoogleSignInMode$Companion;
 	public static final field LEGACY_GOOGLE_SIGN_IN Lnet/plumt/sociallogin/google/GoogleSignInMode;
-	public static fun getEntries ()Lkotlin/enums/EnumEntries;
-	public static fun valueOf (Ljava/lang/String;)Lnet/plumt/sociallogin/google/GoogleSignInMode;
-	public static fun values ()[Lnet/plumt/sociallogin/google/GoogleSignInMode;
+	public static final fun getEntries ()Ljava/util/List;
+	public final fun getName ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class net/plumt/sociallogin/google/GoogleSignInMode$Companion {
+	public final fun getEntries ()Ljava/util/List;
 }
 

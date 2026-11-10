@@ -7,8 +7,7 @@ public final class net/plumt/sociallogin/kakao/KakaoLogin {
 public final class net/plumt/sociallogin/kakao/KakaoLoginConfig {
 	public static final field Companion Lnet/plumt/sociallogin/kakao/KakaoLoginConfig$Companion;
 	public static final field MAX_KEY_LENGTH I
-	public fun <init> (Ljava/lang/String;Z)V
-	public synthetic fun <init> (Ljava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static final fun builder (Ljava/lang/String;)Lnet/plumt/sociallogin/kakao/KakaoLoginConfig$Builder;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getNativeAppKey ()Ljava/lang/String;
 	public final fun getUseKakaoTalk ()Z
@@ -17,6 +16,12 @@ public final class net/plumt/sociallogin/kakao/KakaoLoginConfig {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class net/plumt/sociallogin/kakao/KakaoLoginConfig$Builder {
+	public final fun build ()Lnet/plumt/sociallogin/kakao/KakaoLoginConfig;
+	public final fun useKakaoTalk (Z)Lnet/plumt/sociallogin/kakao/KakaoLoginConfig$Builder;
+}
+
 public final class net/plumt/sociallogin/kakao/KakaoLoginConfig$Companion {
+	public final fun builder (Ljava/lang/String;)Lnet/plumt/sociallogin/kakao/KakaoLoginConfig$Builder;
 }
 

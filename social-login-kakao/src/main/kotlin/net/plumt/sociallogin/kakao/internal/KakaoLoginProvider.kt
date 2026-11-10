@@ -105,6 +105,7 @@ internal class KakaoLoginProvider(
                 message = "카카오 SDK 초기화 실패($operation): ${e.javaClass.name}",
                 providerId = id,
                 cause = e,
+                vendorCode = null,
             )
         }
         return try {

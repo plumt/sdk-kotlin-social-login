@@ -1,25 +1,36 @@
-public final class net/plumt/sociallogin/Capability : java/lang/Enum {
+public final class net/plumt/sociallogin/Capability {
+	public static final field Companion Lnet/plumt/sociallogin/Capability$Companion;
 	public static final field REFRESH_TOKEN Lnet/plumt/sociallogin/Capability;
 	public static final field SIGN_OUT Lnet/plumt/sociallogin/Capability;
 	public static final field UNLINK Lnet/plumt/sociallogin/Capability;
-	public static fun getEntries ()Lkotlin/enums/EnumEntries;
-	public static fun valueOf (Ljava/lang/String;)Lnet/plumt/sociallogin/Capability;
-	public static fun values ()[Lnet/plumt/sociallogin/Capability;
+	public static final fun getEntries ()Ljava/util/List;
+	public final fun getName ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
 }
 
-public final class net/plumt/sociallogin/ConcurrencyPolicy : java/lang/Enum {
+public final class net/plumt/sociallogin/Capability$Companion {
+	public final fun getEntries ()Ljava/util/List;
+}
+
+public final class net/plumt/sociallogin/ConcurrencyPolicy {
+	public static final field Companion Lnet/plumt/sociallogin/ConcurrencyPolicy$Companion;
 	public static final field REJECT Lnet/plumt/sociallogin/ConcurrencyPolicy;
 	public static final field SERIALIZE Lnet/plumt/sociallogin/ConcurrencyPolicy;
-	public static fun getEntries ()Lkotlin/enums/EnumEntries;
-	public static fun valueOf (Ljava/lang/String;)Lnet/plumt/sociallogin/ConcurrencyPolicy;
-	public static fun values ()[Lnet/plumt/sociallogin/ConcurrencyPolicy;
+	public static final fun getEntries ()Ljava/util/List;
+	public final fun getName ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
 }
 
-public final class net/plumt/sociallogin/FailureKind : java/lang/Enum {
+public final class net/plumt/sociallogin/ConcurrencyPolicy$Companion {
+	public final fun getEntries ()Ljava/util/List;
+}
+
+public final class net/plumt/sociallogin/FailureKind {
 	public static final field ACCESS_DENIED Lnet/plumt/sociallogin/FailureKind;
 	public static final field AUTHENTICATION Lnet/plumt/sociallogin/FailureKind;
 	public static final field BUSY Lnet/plumt/sociallogin/FailureKind;
 	public static final field CONFIGURATION Lnet/plumt/sociallogin/FailureKind;
+	public static final field Companion Lnet/plumt/sociallogin/FailureKind$Companion;
 	public static final field INTERRUPTED Lnet/plumt/sociallogin/FailureKind;
 	public static final field NETWORK Lnet/plumt/sociallogin/FailureKind;
 	public static final field NOT_SIGNED_IN Lnet/plumt/sociallogin/FailureKind;
@@ -29,10 +40,55 @@ public final class net/plumt/sociallogin/FailureKind : java/lang/Enum {
 	public static final field TIMEOUT Lnet/plumt/sociallogin/FailureKind;
 	public static final field UNKNOWN Lnet/plumt/sociallogin/FailureKind;
 	public static final field UNSUPPORTED Lnet/plumt/sociallogin/FailureKind;
-	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static final fun getEntries ()Ljava/util/List;
+	public final fun getName ()Ljava/lang/String;
 	public final fun getRetryable ()Z
-	public static fun valueOf (Ljava/lang/String;)Lnet/plumt/sociallogin/FailureKind;
-	public static fun values ()[Lnet/plumt/sociallogin/FailureKind;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class net/plumt/sociallogin/FailureKind$Companion {
+	public final fun getEntries ()Ljava/util/List;
+}
+
+public final class net/plumt/sociallogin/FakeSocialLoginManager : net/plumt/sociallogin/SocialLoginManager {
+	public static final field Companion Lnet/plumt/sociallogin/FakeSocialLoginManager$Companion;
+	public static final field REFRESH_TOKEN Ljava/lang/String;
+	public static final field SIGN_IN Ljava/lang/String;
+	public static final field SIGN_OUT Ljava/lang/String;
+	public static final field UNLINK Ljava/lang/String;
+	public fun <init> (Ljava/util/List;)V
+	public fun capabilitiesOf (Lnet/plumt/sociallogin/ProviderId;)Ljava/util/Set;
+	public final fun clearCalls ()V
+	public final fun getCalls ()Ljava/util/List;
+	public fun getProviderIds ()Ljava/util/List;
+	public fun isRegistered (Lnet/plumt/sociallogin/ProviderId;)Z
+	public fun refreshToken (Lnet/plumt/sociallogin/ProviderId;Ljava/util/concurrent/Executor;Lnet/plumt/sociallogin/SocialLoginCallback;)Lnet/plumt/sociallogin/SocialLoginCallHandle;
+	public fun refreshToken (Lnet/plumt/sociallogin/ProviderId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun setCapabilities (Lnet/plumt/sociallogin/ProviderId;Ljava/util/Set;)V
+	public final fun setRefreshTokenResult (Lnet/plumt/sociallogin/ProviderId;Lnet/plumt/sociallogin/SocialLoginResult;)V
+	public final fun setSignInResult (Lnet/plumt/sociallogin/ProviderId;Lnet/plumt/sociallogin/SocialLoginResult;)V
+	public final fun setSignOutResult (Lnet/plumt/sociallogin/ProviderId;Lnet/plumt/sociallogin/SocialLoginResult;)V
+	public final fun setUnlinkResult (Lnet/plumt/sociallogin/ProviderId;Lnet/plumt/sociallogin/SocialLoginResult;)V
+	public fun signIn (Lnet/plumt/sociallogin/ProviderId;Ljava/lang/Object;Lnet/plumt/sociallogin/SignInOptions;Ljava/util/concurrent/Executor;Lnet/plumt/sociallogin/SocialLoginCallback;)Lnet/plumt/sociallogin/SocialLoginCallHandle;
+	public fun signIn (Lnet/plumt/sociallogin/ProviderId;Ljava/lang/Object;Lnet/plumt/sociallogin/SignInOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun signOut (Lnet/plumt/sociallogin/ProviderId;Ljava/util/concurrent/Executor;Lnet/plumt/sociallogin/SocialLoginCallback;)Lnet/plumt/sociallogin/SocialLoginCallHandle;
+	public fun signOut (Lnet/plumt/sociallogin/ProviderId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun toString ()Ljava/lang/String;
+	public fun unlink (Lnet/plumt/sociallogin/ProviderId;Ljava/util/concurrent/Executor;Lnet/plumt/sociallogin/SocialLoginCallback;)Lnet/plumt/sociallogin/SocialLoginCallHandle;
+	public fun unlink (Lnet/plumt/sociallogin/ProviderId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class net/plumt/sociallogin/FakeSocialLoginManager$Call {
+	public fun <init> (Ljava/lang/String;Lnet/plumt/sociallogin/ProviderId;Lnet/plumt/sociallogin/SignInOptions;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getOperation ()Ljava/lang/String;
+	public final fun getOptions ()Lnet/plumt/sociallogin/SignInOptions;
+	public final fun getProviderId ()Lnet/plumt/sociallogin/ProviderId;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class net/plumt/sociallogin/FakeSocialLoginManager$Companion {
 }
 
 public final class net/plumt/sociallogin/ProviderId {
@@ -55,9 +111,7 @@ public final class net/plumt/sociallogin/SignInOptions {
 	public static final field Companion Lnet/plumt/sociallogin/SignInOptions$Companion;
 	public static final field DEFAULT Lnet/plumt/sociallogin/SignInOptions;
 	public static final field MAX_NONCE_LENGTH I
-	public fun <init> ()V
 	public fun <init> (Ljava/lang/String;)V
-	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun <init> (Ljava/lang/String;Ljava/util/Collection;)V
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun extension (Ljava/lang/Class;)Lnet/plumt/sociallogin/SignInOptions$Extension;
@@ -74,8 +128,8 @@ public abstract interface class net/plumt/sociallogin/SignInOptions$Extension {
 }
 
 public final class net/plumt/sociallogin/SocialAccount {
+	public fun <init> (Lnet/plumt/sociallogin/ProviderId;Lnet/plumt/sociallogin/SocialToken;)V
 	public fun <init> (Lnet/plumt/sociallogin/ProviderId;Lnet/plumt/sociallogin/SocialToken;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
-	public synthetic fun <init> (Lnet/plumt/sociallogin/ProviderId;Lnet/plumt/sociallogin/SocialToken;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getDisplayName ()Ljava/lang/String;
 	public final fun getEmail ()Ljava/lang/String;
@@ -86,40 +140,65 @@ public final class net/plumt/sociallogin/SocialAccount {
 	public fun toString ()Ljava/lang/String;
 }
 
+public abstract interface class net/plumt/sociallogin/SocialLoginCallHandle {
+	public abstract fun cancel ()V
+	public abstract fun isActive ()Z
+}
+
+public abstract interface class net/plumt/sociallogin/SocialLoginCallback {
+	public abstract fun onResult (Lnet/plumt/sociallogin/SocialLoginResult;)V
+}
+
+public final class net/plumt/sociallogin/SocialLoginConfig {
+	public static final field Companion Lnet/plumt/sociallogin/SocialLoginConfig$Companion;
+	public static final fun builder ()Lnet/plumt/sociallogin/SocialLoginConfig$Builder;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCallTimeoutMillis ()Ljava/lang/Long;
+	public final fun getConcurrencyPolicy ()Lnet/plumt/sociallogin/ConcurrencyPolicy;
+	public final fun getProviders ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class net/plumt/sociallogin/SocialLoginConfig$Builder {
+	public final fun build ()Lnet/plumt/sociallogin/SocialLoginConfig;
+	public final fun callTimeoutMillis (J)Lnet/plumt/sociallogin/SocialLoginConfig$Builder;
+	public final fun concurrencyPolicy (Lnet/plumt/sociallogin/ConcurrencyPolicy;)Lnet/plumt/sociallogin/SocialLoginConfig$Builder;
+	public final fun register (Lnet/plumt/sociallogin/SocialLoginProvider;)Lnet/plumt/sociallogin/SocialLoginConfig$Builder;
+}
+
+public final class net/plumt/sociallogin/SocialLoginConfig$Companion {
+	public final fun builder ()Lnet/plumt/sociallogin/SocialLoginConfig$Builder;
+}
+
 public final class net/plumt/sociallogin/SocialLoginErrors {
 	public static final field INSTANCE Lnet/plumt/sociallogin/SocialLoginErrors;
 	public static final field MAX_CAUSE_DEPTH I
 	public final fun classify (Ljava/lang/Throwable;)Lnet/plumt/sociallogin/FailureKind;
+	public final fun failureOf (Ljava/lang/Throwable;Ljava/lang/String;)Lnet/plumt/sociallogin/SocialLoginResult$Failure;
+	public final fun failureOf (Ljava/lang/Throwable;Ljava/lang/String;Lnet/plumt/sociallogin/ProviderId;)Lnet/plumt/sociallogin/SocialLoginResult$Failure;
 	public final fun failureOf (Ljava/lang/Throwable;Ljava/lang/String;Lnet/plumt/sociallogin/ProviderId;Ljava/lang/String;)Lnet/plumt/sociallogin/SocialLoginResult$Failure;
-	public static synthetic fun failureOf$default (Lnet/plumt/sociallogin/SocialLoginErrors;Ljava/lang/Throwable;Ljava/lang/String;Lnet/plumt/sociallogin/ProviderId;Ljava/lang/String;ILjava/lang/Object;)Lnet/plumt/sociallogin/SocialLoginResult$Failure;
 }
 
 public abstract interface class net/plumt/sociallogin/SocialLoginManager {
 	public static final field Companion Lnet/plumt/sociallogin/SocialLoginManager$Companion;
-	public static fun builder ()Lnet/plumt/sociallogin/SocialLoginManager$Builder;
 	public abstract fun capabilitiesOf (Lnet/plumt/sociallogin/ProviderId;)Ljava/util/Set;
+	public static fun create (Lnet/plumt/sociallogin/SocialLoginConfig;)Lnet/plumt/sociallogin/SocialLoginManager;
 	public abstract fun getProviderIds ()Ljava/util/List;
 	public abstract fun isRegistered (Lnet/plumt/sociallogin/ProviderId;)Z
+	public fun refreshToken (Lnet/plumt/sociallogin/ProviderId;Ljava/util/concurrent/Executor;Lnet/plumt/sociallogin/SocialLoginCallback;)Lnet/plumt/sociallogin/SocialLoginCallHandle;
 	public abstract fun refreshToken (Lnet/plumt/sociallogin/ProviderId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun signIn (Lnet/plumt/sociallogin/ProviderId;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun signIn (Lnet/plumt/sociallogin/ProviderId;Ljava/lang/Object;Lnet/plumt/sociallogin/SignInOptions;Ljava/util/concurrent/Executor;Lnet/plumt/sociallogin/SocialLoginCallback;)Lnet/plumt/sociallogin/SocialLoginCallHandle;
 	public abstract fun signIn (Lnet/plumt/sociallogin/ProviderId;Ljava/lang/Object;Lnet/plumt/sociallogin/SignInOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static synthetic fun signIn$default (Lnet/plumt/sociallogin/SocialLoginManager;Lnet/plumt/sociallogin/ProviderId;Ljava/lang/Object;Lnet/plumt/sociallogin/SignInOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public fun signOut (Lnet/plumt/sociallogin/ProviderId;Ljava/util/concurrent/Executor;Lnet/plumt/sociallogin/SocialLoginCallback;)Lnet/plumt/sociallogin/SocialLoginCallHandle;
 	public abstract fun signOut (Lnet/plumt/sociallogin/ProviderId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun unlink (Lnet/plumt/sociallogin/ProviderId;Ljava/util/concurrent/Executor;Lnet/plumt/sociallogin/SocialLoginCallback;)Lnet/plumt/sociallogin/SocialLoginCallHandle;
 	public abstract fun unlink (Lnet/plumt/sociallogin/ProviderId;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
-public final class net/plumt/sociallogin/SocialLoginManager$Builder {
-	public final fun build ()Lnet/plumt/sociallogin/SocialLoginManager;
-	public final fun callTimeoutMillis (J)Lnet/plumt/sociallogin/SocialLoginManager$Builder;
-	public final fun concurrencyPolicy (Lnet/plumt/sociallogin/ConcurrencyPolicy;)Lnet/plumt/sociallogin/SocialLoginManager$Builder;
-	public final fun register (Lnet/plumt/sociallogin/SocialLoginProvider;)Lnet/plumt/sociallogin/SocialLoginManager$Builder;
-}
-
 public final class net/plumt/sociallogin/SocialLoginManager$Companion {
-	public final fun builder ()Lnet/plumt/sociallogin/SocialLoginManager$Builder;
-}
-
-public final class net/plumt/sociallogin/SocialLoginManager$DefaultImpls {
-	public static synthetic fun signIn$default (Lnet/plumt/sociallogin/SocialLoginManager;Lnet/plumt/sociallogin/ProviderId;Ljava/lang/Object;Lnet/plumt/sociallogin/SignInOptions;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun create (Lnet/plumt/sociallogin/SocialLoginConfig;)Lnet/plumt/sociallogin/SocialLoginManager;
 }
 
 public abstract interface class net/plumt/sociallogin/SocialLoginProvider {
@@ -137,25 +216,18 @@ public final class net/plumt/sociallogin/SocialLoginProvider$Companion {
 	public final fun unsupported (Lnet/plumt/sociallogin/ProviderId;Lnet/plumt/sociallogin/Capability;)Lnet/plumt/sociallogin/SocialLoginResult$Failure;
 }
 
-public final class net/plumt/sociallogin/SocialLoginProvider$DefaultImpls {
-	public static fun refreshToken (Lnet/plumt/sociallogin/SocialLoginProvider;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static fun signOut (Lnet/plumt/sociallogin/SocialLoginProvider;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static fun unlink (Lnet/plumt/sociallogin/SocialLoginProvider;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-}
-
 public abstract interface class net/plumt/sociallogin/SocialLoginResult {
 }
 
 public final class net/plumt/sociallogin/SocialLoginResult$Cancelled : net/plumt/sociallogin/SocialLoginResult {
 	public static final field INSTANCE Lnet/plumt/sociallogin/SocialLoginResult$Cancelled;
-	public fun equals (Ljava/lang/Object;)Z
-	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
 
 public final class net/plumt/sociallogin/SocialLoginResult$Failure : net/plumt/sociallogin/SocialLoginResult {
+	public fun <init> (Lnet/plumt/sociallogin/FailureKind;Ljava/lang/String;)V
+	public fun <init> (Lnet/plumt/sociallogin/FailureKind;Ljava/lang/String;Lnet/plumt/sociallogin/ProviderId;)V
 	public fun <init> (Lnet/plumt/sociallogin/FailureKind;Ljava/lang/String;Lnet/plumt/sociallogin/ProviderId;Ljava/lang/String;Ljava/lang/Throwable;)V
-	public synthetic fun <init> (Lnet/plumt/sociallogin/FailureKind;Ljava/lang/String;Lnet/plumt/sociallogin/ProviderId;Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getCause ()Ljava/lang/Throwable;
 	public final fun getKind ()Lnet/plumt/sociallogin/FailureKind;
@@ -181,8 +253,8 @@ public final class net/plumt/sociallogin/SocialLoginResultKt {
 }
 
 public final class net/plumt/sociallogin/SocialToken {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/Long;Ljava/util/Set;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Long;Ljava/lang/Long;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAccessToken ()Ljava/lang/String;
 	public final fun getAccessTokenExpiresAtMillis ()Ljava/lang/Long;

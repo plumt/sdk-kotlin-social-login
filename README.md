@@ -23,7 +23,7 @@ Android 소셜 로그인(카카오·네이버·Google)을 인터페이스 하나
 | 네이버 | 액세스 토큰 | `openapi.naver.com/v1/nid/me` 로 토큰이 유효한지 확인하고 사용자 고유 ID 를 받는다 |
 
 - 사용자 식별은 서버가 검증한 고유 ID(`sub`·회원번호)로 한다. 이메일은 수단마다 없거나 바뀔 수 있다.
-- 재전송을 막으려면 서버가 일회용 `nonce` 를 만들어 내려 주고 `SignInOptions(nonce = ...)` 로 넘긴 뒤, 받은 ID 토큰의
+- 재전송을 막으려면 서버가 일회용 `nonce` 를 만들어 내려 주고 `SignInOptions(nonce)` 로 넘긴 뒤, 받은 ID 토큰의
   `nonce` 와 대조한다(Google Credential Manager 모드·카카오 OIDC). 네이버와 Google 기본 모드는 nonce 를 담을 수 없어
   `UNSUPPORTED` 로 끝난다. 카카오에서 OIDC 를 켜지 않았으면 `CONFIGURATION` 이다(조용히 무시하지 않는다).
 
@@ -47,9 +47,9 @@ dependencyResolutionManagement {
 ```kotlin
 // app/build.gradle.kts — 쓸 수단만 고른다. core 는 따라온다
 dependencies {
-    implementation("net.plumt.sociallogin:social-login-kakao:0.0.2")
-    implementation("net.plumt.sociallogin:social-login-naver:0.0.2")
-    implementation("net.plumt.sociallogin:social-login-google:0.1.1")
+    implementation("net.plumt.sociallogin:social-login-kakao:0.2.0")
+    implementation("net.plumt.sociallogin:social-login-naver:0.2.0")
+    implementation("net.plumt.sociallogin:social-login-google:0.2.0")
 }
 ```
 
@@ -59,20 +59,18 @@ dependencies {
 ## 사용
 
 ```kotlin
-val manager: SocialLoginManager<Activity> = SocialLoginManager.builder<Activity>()
-    .register(KakaoLogin.provider(appContext, KakaoLoginConfig(nativeAppKey = BuildConfig.KAKAO_NATIVE_APP_KEY)))
-    .register(
-        NaverLogin.provider(
-            appContext,
-            NaverLoginConfig(
-                clientId = BuildConfig.NAVER_CLIENT_ID,
-                clientSecret = BuildConfig.NAVER_CLIENT_SECRET,
-                clientName = getString(R.string.app_name),
+val manager: SocialLoginManager<Activity> = SocialLoginManager.create(
+    SocialLoginConfig.builder<Activity>()
+        .register(KakaoLogin.provider(appContext, KakaoLoginConfig.builder(BuildConfig.KAKAO_NATIVE_APP_KEY).build()))
+        .register(
+            NaverLogin.provider(
+                appContext,
+                NaverLoginConfig(BuildConfig.NAVER_CLIENT_ID, BuildConfig.NAVER_CLIENT_SECRET, getString(R.string.app_name)),
             ),
-        ),
-    )
-    .register(GoogleLogin.provider(appContext, GoogleLoginConfig(serverClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID)))
-    .build()
+        )
+        .register(GoogleLogin.provider(appContext, GoogleLoginConfig.builder(BuildConfig.GOOGLE_WEB_CLIENT_ID).build()))
+        .build(),
+)
 
 // 화면: 등록한 수단만 버튼으로 그린다
 manager.providerIds   // [kakao, naver, google]
@@ -109,6 +107,7 @@ manager.capabilitiesOf(ProviderId.GOOGLE)  // [SIGN_OUT, UNLINK] — Google 은 
 - **`viewModelScope` 처럼 화면 회전에 살아남는 스코프로 부른다.** `lifecycleScope` 로 부르고 회전하면 코루틴만 취소되고 벤더 SDK 는
   로그인을 끝내 토큰을 저장할 수 있다. 앱은 로그아웃 상태로, SDK 는 로그인 상태로 갈라진다. 앱 전역 스코프로 부르면 벤더 SDK 가
   콜백을 주지 않을 때 잠금이 오래 남으니 `callTimeoutMillis` 를 함께 둔다.
+- `FailureKind`·`Capability`·`ConcurrencyPolicy`·`GoogleSignInMode` 는 enum 이 아니라 상수 클래스다. 값이 늘 수 있으니 `when` 에는 `else` 를 둔다.
 - 오류와 실패 신호는 [ERRORS.md](ERRORS.md), 변경 이력은 [CHANGELOG.md](CHANGELOG.md).
 
 ### 동시 호출
@@ -120,8 +119,45 @@ manager.capabilitiesOf(ProviderId.GOOGLE)  // [SIGN_OUT, UNLINK] — Google 은 
 | `REJECT` (기본) | 진행 중이면 새 호출을 `FailureKind.BUSY` 로 바로 끝낸다. 버튼을 두 번 눌러 로그인 화면이 두 번 뜨는 것을 막는다 |
 | `SERIALIZE` | 앞 호출이 끝날 때까지 기다렸다가 실행한다. 기다리다 취소되면 실행하지 않는다 |
 
-벤더 SDK 가 콜백을 주지 않으면 그 호출이 끝나지 않아 다른 수단까지 `BUSY` 가 된다. `Builder.callTimeoutMillis(...)` 를 두면 상한을
+벤더 SDK 가 콜백을 주지 않으면 그 호출이 끝나지 않아 다른 수단까지 `BUSY` 가 된다. `SocialLoginConfig.Builder.callTimeoutMillis(...)` 를 두면 상한을
 넘은 호출을 취소하고 `FailureKind.TIMEOUT` 으로 끝내 잠금을 푼다. 계정 추가·2단계 인증 시간을 넉넉히 잡는다(예: 5분).
+
+### 콜백 형태
+
+코루틴을 쓰지 않는 코드(Java 포함)는 같은 동작의 콜백 오버로드를 부른다. 결과를 받을 실행기와 콜백을 넘기고 취소 핸들을 받는다.
+`suspend` 형태를 감쌀 뿐 동작·결과는 같다.
+
+```kotlin
+val handle: SocialLoginCallHandle = manager.signIn(
+    ProviderId.KAKAO,
+    activity,
+    SignInOptions.DEFAULT,
+    ContextCompat.getMainExecutor(activity),   // 결과를 메인 스레드에서 받는다
+) { result -> render(result) }
+
+handle.cancel()   // 콜백을 부르지 않는다. 이미 뜬 SDK 화면은 닫히지 않을 수 있다
+```
+
+- 콜백은 넘긴 실행기에서 한 번 불린다. 취소한 뒤에는 불리지 않는다.
+- 호출은 화면 수명과 무관한 코루틴에서 돈다. 회전으로 취소되지 않으니 회전에 살아남는 곳(ViewModel 등)에서 부르고 핸들을 그곳에 둔다.
+  프로세스가 종료되면 콜백은 불리지 않는다(아래 [알려진 한계](#알려진-한계)).
+
+### 테스트
+
+`FakeSocialLoginManager` 는 기기·벤더 SDK 없이 정해 둔 결과를 돌려주고 호출을 기록한다. 앱 단위 테스트에서 `SocialLoginManager`
+자리에 넣는다.
+
+```kotlin
+val fake = FakeSocialLoginManager<Activity>(listOf(ProviderId.KAKAO, ProviderId.GOOGLE))
+fake.setSignInResult(ProviderId.KAKAO, SocialLoginResult.Cancelled)
+fake.setCapabilities(ProviderId.GOOGLE, setOf(Capability.SIGN_OUT, Capability.UNLINK))
+
+viewModel.onKakaoClick()
+assertEquals(FakeSocialLoginManager.SIGN_IN, fake.calls.single().operation)
+```
+
+등록하지 않은 수단·지원하지 않는 동작은 실제 Manager 와 같은 실패이고, 결과를 정하지 않은 동작은 `UNKNOWN` 실패다.
+콜백 형태는 곧바로 실행기에 결과를 넘긴다(`Executor { it.run() }` 를 넘기면 동기로 받는다).
 
 ## 앱이 할 설정
 
@@ -181,7 +217,7 @@ android {
    - **Android** 클라이언트: 패키지명과 서명 인증서 SHA-1. 배포본은 Play **앱 서명 키**의 SHA-1 이다.
    - **웹 애플리케이션** 클라이언트: 이 ID 를 `GoogleLoginConfig.serverClientId` 에 넣는다(Android 클라이언트 ID 를 넣으면 ID 토큰이 안 나온다).
 2. OAuth 동의 화면의 앱 이름·지원 이메일을 채운다.
-3. 화면 형태(`GoogleLoginConfig.mode`)를 고른다.
+3. 화면 형태를 고른다 — `GoogleLoginConfig.builder(serverClientId).mode(GoogleSignInMode.BUTTON).build()`.
 
 | 모드 | 경로 | nonce | 연결 해제 | 쓸 때 |
 |---|---|---|---|---|
@@ -194,8 +230,8 @@ android {
 
 ```kotlin
 val silent = SignInOptions(
-    nonce = null,
-    extensions = listOf(GoogleSignInExtension(GoogleSignInMode.BOTTOM_SHEET, filterByAuthorizedAccounts = true, autoSelectEnabled = true)),
+    null,
+    listOf(GoogleSignInExtension(GoogleSignInMode.BOTTOM_SHEET, filterByAuthorizedAccounts = true, autoSelectEnabled = true)),
 )
 when (val result = manager.signIn(ProviderId.GOOGLE, activity, silent)) {
     is SocialLoginResult.Success -> api.login(ProviderId.GOOGLE.value, result.value.token)
@@ -264,6 +300,39 @@ Binder 데이터가 한도(약 1MB)를 넘어 계정 선택 시트가 뜨지 못
 - `play-services-auth` 22.0.0 은 Google Sign-In API 를 지웠고 minSdk 가 24 다. 기본 모드가 그 API 를 쓰므로 이 모듈은 21.x
   (21.6.0)에 머문다. 앱이 22 이상을 고르면 기본 모드 로그인이 `NoClassDefFoundError` 로 깨진다 — 21.x 를 유지한다.
 
+## 앱 매니페스트에 더해지는 것
+
+수단 모듈의 매니페스트가 앱 매니페스트에 병합된다. 이 밖의 권한·컴포넌트는 더하지 않는다.
+
+| 모듈 | 권한 | 컴포넌트 |
+|---|---|---|
+| `social-login-core` | 없음(jar) | 없음 |
+| `social-login-kakao` | `android.permission.INTERNET` | 없음 — 리다이렉트 Activity 는 앱이 선언한다([카카오](#카카오)). 카카오 SDK 의 매니페스트가 더하는 것은 SDK 문서를 본다 |
+| `social-login-naver` | `android.permission.INTERNET` | 없음. 네이버 SDK 의 매니페스트가 더하는 것은 SDK 문서를 본다 |
+| `social-login-google` | `android.permission.INTERNET` | 투명 호스트 Activity(`android:exported="false"`, 기본 모드 전용) |
+
+## API 레벨별 동작
+
+| Android | 카카오 | 네이버 | Google 기본 모드 | Google Credential Manager 모드 |
+|---|---|---|---|---|
+| 6–12L (API 23–32) | 카카오톡 앱 로그인, 없으면 카카오계정(웹) | 네이버 앱 또는 커스텀 탭 | Google Play 서비스 계정 선택 | Google Play 서비스(`credentials-play-services-auth`) |
+| 13 (API 33) | 같음 | 같음 | 같음. 호스트 Activity 가 인텐트를 새 `getParcelableExtra(Class)` 로 읽는다 | 같음 |
+| 14 이상 (API 34+) | 같음 | 같음 | 같음 | 시스템 Credential Manager → Google Play 서비스 |
+| 22 이하 (API ≤ 22) | 지원하지 않는다(minSdk 23) | | | |
+
+연결 해제는 API 레벨보다 기기의 Google Play 서비스 버전에 달렸다([Google](#google)). 새 Android 버전이 나오면 이 표부터 고친다.
+
+## 알려진 한계
+
+- **프로세스 종료 뒤 결과는 잇지 않는다.** 로그인 화면이 떠 있는 사이 시스템이 앱 프로세스를 종료하면, `suspend`·콜백 어느 형태든
+  결과를 받지 못한다. 카카오·네이버 SDK 가 결과를 프로세스 안의 콜백으로만 주기 때문이다. 사용자가 다시 시도한다. 화면 회전은
+  회전에 살아남는 곳에서 부르면 결과를 잃지 않는다.
+- **네이버 연결 해제 실패 뒤 토큰 되돌리기는 네이버 SDK 의 비공개 저장소에 기댄다.** 공개 API 가 없어 SDK 내부 저장소에 쓴다.
+  검증한 5.10.0 이 아닌 버전에서 그 저장소가 바뀌면 되돌리기가 실패하고(앱을 죽이지 않는다) 실패 메시지가 "되돌리지 못했다" 고 알린다.
+  그때는 다시 로그인한 뒤 연결 해제한다.
+- **Google 기본 모드는 지원 중단 표시가 붙은 API 를 쓴다.** `play-services-auth` 21.x 에 머물고, 22.0.0 이상을 고르면 기본 모드가 깨진다([Google](#google)).
+- **계정이 많은 기기의 `TransactionTooLargeException`**([알려진 문제](#알려진-문제--계정이-많은-기기의-transactiontoolargeexception)).
+
 ## 위협 모델
 
 | 위협 | 대응 |
@@ -292,7 +361,7 @@ class AppleLoginProvider(/* ... */) : SocialLoginProvider<Activity> {
     override val capabilities = setOf(Capability.SIGN_OUT)
     override suspend fun signIn(host: Activity, options: SignInOptions): SocialLoginResult<SocialAccount> = try {
         val idToken = /* 벤더 SDK 호출 */
-        SocialLoginResult.Success(SocialAccount(id, SocialToken(accessToken = null, idToken = idToken)))
+        SocialLoginResult.Success(SocialAccount(id, SocialToken(null, idToken)))
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {

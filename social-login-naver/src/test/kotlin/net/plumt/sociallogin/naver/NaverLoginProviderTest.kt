@@ -13,6 +13,7 @@ import net.plumt.sociallogin.FailureKind
 import net.plumt.sociallogin.ProviderId
 import net.plumt.sociallogin.SignInOptions
 import net.plumt.sociallogin.SocialAccount
+import net.plumt.sociallogin.SocialLoginConfig
 import net.plumt.sociallogin.SocialLoginManager
 import net.plumt.sociallogin.SocialLoginResult
 import net.plumt.sociallogin.SocialToken
@@ -122,7 +123,7 @@ class NaverLoginProviderTest {
     fun `로그인 성공 — 저장 토큰을 초→밀리초로 옮기고 ID 토큰은 없다`() = runTest(dispatcher) {
         val account = (provider().signIn(activity, SignInOptions.DEFAULT) as SocialLoginResult.Success).value
         assertEquals(
-            SocialAccount(ProviderId.NAVER, SocialToken("at", null, "rt", 1_700_000_000_000L)),
+            SocialAccount(ProviderId.NAVER, SocialToken("at", null, "rt", 1_700_000_000_000L, refreshTokenExpiresAtMillis = null, scopes = emptySet())),
             account,
         )
         assertEquals(listOf("init:cid", "authenticate"), gateway.calls)
@@ -267,7 +268,7 @@ class NaverLoginProviderTest {
             gate.await()
             store.access = "at"
         }
-        val manager = SocialLoginManager.builder<Activity>().register(provider()).build()
+        val manager = SocialLoginManager.create(SocialLoginConfig.builder<Activity>().register(provider()).build())
         val first = async { manager.signIn(ProviderId.NAVER, activity) }
         assertEquals(FailureKind.BUSY, manager.signIn(ProviderId.NAVER, activity).failure().kind)
         gate.complete(Unit)

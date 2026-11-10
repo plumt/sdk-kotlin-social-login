@@ -73,6 +73,7 @@ internal class GoogleLoginProvider(
                 message = "다른 Google 로그인 화면이 이미 떠 있다",
                 providerId = id,
                 vendorCode = VENDOR_HOST_BUSY,
+                cause = null,
             )
             GoogleSignInHostResult.HostGone -> SocialLoginResult.Cancelled
             GoogleSignInHostResult.NotStarted -> SocialLoginResult.Failure(
@@ -81,6 +82,7 @@ internal class GoogleLoginProvider(
                     "${GoogleSignInHost.DEFAULT_START_TIMEOUT_MILLIS}ms 안에 뜨지 않았다 — 화면이 포그라운드일 때 다시 시도한다",
                 providerId = id,
                 vendorCode = VENDOR_HOST_NOT_STARTED,
+                cause = null,
             )
             is GoogleSignInHostResult.Failed -> throw outcome.error
             is GoogleSignInHostResult.ActivityResult -> {
@@ -176,6 +178,7 @@ internal class GoogleLoginProvider(
                     "로그인 때 받은 이메일을 GoogleLogin.unlink(provider, accountEmail) 로 넘긴다. Google 을 부르지 않았다",
                 providerId = id,
                 vendorCode = VENDOR_NO_ACCOUNT,
+                cause = null,
             )
         }
         return call("unlink") {

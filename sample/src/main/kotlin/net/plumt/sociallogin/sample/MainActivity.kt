@@ -7,6 +7,7 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import net.plumt.sociallogin.SignInOptions
+import net.plumt.sociallogin.SocialLoginConfig
 import net.plumt.sociallogin.SocialLoginManager
 import net.plumt.sociallogin.SocialLoginResult
 
@@ -19,9 +20,9 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val builder = SocialLoginManager.builder<Activity>()
+        val builder = SocialLoginConfig.builder<Activity>()
         providers(applicationContext).forEach { builder.register(it) }
-        val manager = builder.build()
+        val manager = SocialLoginManager.create(builder.build())
         val first = FirstExtension(intent.getIntExtra("first", 1))
         val second = SecondExtension(intent.getIntExtra("second", 2))
         Log.i(TAG, "${first.next()} ${second.next()}")

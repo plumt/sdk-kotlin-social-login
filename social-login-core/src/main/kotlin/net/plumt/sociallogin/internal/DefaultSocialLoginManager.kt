@@ -19,7 +19,7 @@ import kotlin.coroutines.cancellation.CancellationException
 internal class DefaultSocialLoginManager<H>(
     private val providers: Map<ProviderId, SocialLoginProvider<H>>,
     private val policy: ConcurrencyPolicy,
-    private val callTimeoutMillis: Long? = null,
+    private val callTimeoutMillis: Long?,
 ) : SocialLoginManager<H> {
 
     private val mutex = Mutex()
@@ -73,9 +73,9 @@ internal class DefaultSocialLoginManager<H>(
         if (capability != null && capability !in provider.capabilities) {
             return SocialLoginProvider.unsupported(providerId, capability)
         }
-        return when (policy) {
-            ConcurrencyPolicy.SERIALIZE -> mutex.withLock { invoke(provider, providerId, operation, block) }
-            ConcurrencyPolicy.REJECT -> {
+        return when (policy.kind) {
+            ConcurrencyPolicy.Kind.SERIALIZE -> mutex.withLock { invoke(provider, providerId, operation, block) }
+            ConcurrencyPolicy.Kind.REJECT -> {
                 if (!mutex.tryLock()) {
                     return SocialLoginResult.Failure(
                         kind = FailureKind.BUSY,

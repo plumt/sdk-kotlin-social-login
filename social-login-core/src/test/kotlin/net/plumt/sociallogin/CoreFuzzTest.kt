@@ -77,7 +77,7 @@ class CoreFuzzTest {
         provider.signOutResult = { next() }
         provider.unlinkResult = { next() }
         provider.refreshResult = { next() }
-        val m = SocialLoginManager.builder<String>().register(provider).build()
+        val m = SocialLoginManager.create(SocialLoginConfig.builder<String>().register(provider).build())
         val ids = listOf(ProviderId.KAKAO, ProviderId.NAVER)
         repeat(3_000) { i ->
             val id = ids[random.nextInt(ids.size)]

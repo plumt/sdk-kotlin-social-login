@@ -20,6 +20,7 @@ import net.plumt.sociallogin.FailureKind
 import net.plumt.sociallogin.ProviderId
 import net.plumt.sociallogin.SignInOptions
 import net.plumt.sociallogin.SocialAccount
+import net.plumt.sociallogin.SocialLoginConfig
 import net.plumt.sociallogin.SocialLoginManager
 import net.plumt.sociallogin.SocialLoginResult
 import net.plumt.sociallogin.SocialToken
@@ -43,7 +44,7 @@ class KakaoLoginProviderTest {
     private val dispatcher = UnconfinedTestDispatcher()
 
     private fun provider(useKakaoTalk: Boolean = true, g: FakeKakaoGateway = gateway) =
-        KakaoLoginProvider(KakaoLoginConfig("abc123", useKakaoTalk), g, dispatcher)
+        KakaoLoginProvider(kakaoConfig("abc123", useKakaoTalk), g, dispatcher)
 
     private fun SocialLoginResult<*>.failure() = this as SocialLoginResult.Failure
 
@@ -271,7 +272,7 @@ class KakaoLoginProviderTest {
     fun `카카오톡 로그인을 기다리다 호출이 취소되면 웹 폴백을 하지 않는다`() = runTest(StandardTestDispatcher()) {
         val never = CompletableDeferred<Nothing>()
         gateway.talk = { never.await() }
-        val p = KakaoLoginProvider(KakaoLoginConfig("abc123"), gateway, StandardTestDispatcher(testScheduler))
+        val p = KakaoLoginProvider(kakaoConfig("abc123"), gateway, StandardTestDispatcher(testScheduler))
         val job = launch { p.signIn(activity, SignInOptions.DEFAULT) }
         runCurrent()
         job.cancel()
@@ -287,7 +288,7 @@ class KakaoLoginProviderTest {
             gate.await()
             oauthToken()
         }
-        val manager = SocialLoginManager.builder<Activity>().register(provider()).build()
+        val manager = SocialLoginManager.create(SocialLoginConfig.builder<Activity>().register(provider()).build())
         val first = async { manager.signIn(ProviderId.KAKAO, activity) }
         val second = manager.signIn(ProviderId.KAKAO, activity)
         assertEquals(FailureKind.BUSY, second.failure().kind)

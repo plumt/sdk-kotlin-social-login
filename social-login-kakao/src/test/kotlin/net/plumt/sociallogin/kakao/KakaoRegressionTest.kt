@@ -29,14 +29,14 @@ class KakaoRegressionTest {
     private val gateway = FakeKakaoGateway()
     private val dispatcher = UnconfinedTestDispatcher()
 
-    private fun provider(config: KakaoLoginConfig = KakaoLoginConfig("abc123")) =
+    private fun provider(config: KakaoLoginConfig = kakaoConfig("abc123")) =
         KakaoLoginProvider(config, gateway, dispatcher)
 
     // H4 — 빈 키는 생성 때 던지지 않고, 호출이 SDK 를 부르지 않은 채 CONFIGURATION 으로 끝난다
     @Test
     fun `빈 키는 생성 때 던지지 않고 모든 동작이 SDK 를 부르지 않은 CONFIGURATION`() = runTest(dispatcher) {
         for (blank in listOf("", " ", "\t\n")) {
-            val config = KakaoLoginConfig(blank)
+            val config = kakaoConfig(blank)
             assertFalse(config.isConfigured)
             val p = provider(config)
             val results = listOf(
@@ -53,7 +53,7 @@ class KakaoRegressionTest {
             }
         }
         assertTrue("SDK 초기화·호출이 없어야 한다: ${gateway.calls}", gateway.calls.isEmpty())
-        assertTrue(KakaoLoginConfig("abc123").isConfigured)
+        assertTrue(kakaoConfig("abc123").isConfigured)
     }
 
     // M4 — nonce 를 넘겼는데 ID 토큰이 없으면(OIDC 미활성화) 성공으로 넘기지 않는다

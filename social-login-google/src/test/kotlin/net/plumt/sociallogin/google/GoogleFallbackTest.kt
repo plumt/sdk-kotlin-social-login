@@ -35,7 +35,7 @@ class GoogleFallbackTest {
     private val gateway = FakeGoogleGateway()
     private val dispatcher = UnconfinedTestDispatcher()
 
-    private fun provider(config: GoogleLoginConfig = GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET)) =
+    private fun provider(config: GoogleLoginConfig = googleConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET)) =
         GoogleLoginProvider(config, gateway, dispatcher)
 
     /** 시도마다 차례로 결과를 낸다. */
@@ -61,7 +61,7 @@ class GoogleFallbackTest {
     @Test
     fun `시트 전용 선택지를 켠 설정도 버튼 흐름으로 재시도한다`() = runTest(dispatcher) {
         sequence({ throw ttl() }, { googleCredential() })
-        val config = GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET, filterByAuthorizedAccounts = true, autoSelectEnabled = true)
+        val config = googleConfig(CLIENT_ID, GoogleSignInMode.BOTTOM_SHEET, filterByAuthorizedAccounts = true, autoSelectEnabled = true)
         assertTrue(provider(config).signIn(activity, SignInOptions.DEFAULT) is SocialLoginResult.Success)
         assertTrue(gateway.options[1] is GetSignInWithGoogleOption)
     }
@@ -126,7 +126,7 @@ class GoogleFallbackTest {
     fun `버튼 흐름에서 처음부터 걸리면 재시도 없이 전용 실패`() = runTest(dispatcher) {
         val e = ttl()
         sequence({ throw e })
-        val f = provider(GoogleLoginConfig(CLIENT_ID, GoogleSignInMode.BUTTON)).signIn(activity, SignInOptions.DEFAULT) as SocialLoginResult.Failure
+        val f = provider(googleConfig(CLIENT_ID, GoogleSignInMode.BUTTON)).signIn(activity, SignInOptions.DEFAULT) as SocialLoginResult.Failure
         assertEquals(FailureKind.UNSUPPORTED, f.kind)
         assertEquals(GoogleErrors.TRANSACTION_TOO_LARGE, f.vendorCode)
         assertSame(e, f.cause)
@@ -190,7 +190,7 @@ class GoogleFallbackTest {
             )
             // Credential Manager 모드의 폴백 사슬만 본다. 기본 모드는 GoogleLegacyTest
             val mode = listOf(GoogleSignInMode.BOTTOM_SHEET, GoogleSignInMode.BUTTON).random(random)
-            val r = provider(GoogleLoginConfig(CLIENT_ID, mode)).signIn(activity, SignInOptions.DEFAULT)
+            val r = provider(googleConfig(CLIENT_ID, mode)).signIn(activity, SignInOptions.DEFAULT)
             assertTrue(r is SocialLoginResult.Success || r is SocialLoginResult.Failure || r === SocialLoginResult.Cancelled)
             assertTrue(gateway.calls.size in 1..2)
         }

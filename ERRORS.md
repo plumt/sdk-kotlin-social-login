@@ -4,12 +4,14 @@
 
 공통 규칙:
 
-- **틀린 인자 → `IllegalArgumentException`.** 생성자·설정 객체가 즉시 던진다. 메시지에 허용 범위를 넣고, 받은 값은
+- **틀린 인자 → `IllegalArgumentException`.** 생성자·설정 조립기의 `build()` 가 즉시 던진다. 메시지에 허용 범위를 넣고, 받은 값은
   비밀이 아닐 때만 넣는다(키·Secret·토큰·nonce·이메일은 길이만).
 - **빈 키는 틀린 인자가 아니라 "설정 안 됨" 이다(0.0.2).** 각 `*LoginConfig` 는 비었거나 공백뿐인 키를 받아 `isConfigured = false` 로 두고,
   그 수단의 모든 호출이 SDK 를 부르지 않은 채 `CONFIGURATION` 으로 끝난다.
 - **그 밖의 실패는 예외가 아니라 `SocialLoginResult`** 다. `Success` / `Cancelled`(사용자가 닫음) / `Failure(kind, message, providerId, vendorCode, cause)`.
   벤더 SDK 의 원래 예외는 `cause`, 원래 코드는 `vendorCode` 에 남는다. 분기는 `kind` 로 하고 `message` 문구에 기대지 않는다.
+- `FailureKind` 는 enum 이 아니라 상수 클래스다(0.2.0). 갈래가 늘 수 있으니 `when (kind)` 에는 `else` 를 둔다.
+- 콜백 형태(`Executor`·`SocialLoginCallback` 오버로드)는 같은 결과를 콜백으로 준다. 취소하면 콜백이 불리지 않는다. 실행기가 작업을 거절하면(`RejectedExecutionException`) 결과를 버린다.
 - **코루틴 취소**(`CancellationException`)는 결과로 바꾸지 않고 그대로 퍼진다. 사용자 취소(`Cancelled`)와 다르다.
 - `Error`(OutOfMemoryError 등)는 잡지 않는다.
 
@@ -24,9 +26,9 @@
 | `IllegalArgumentException` | `SocialAccount` 의 `email`·`displayName`·`profileImageUrl` 이 공백뿐일 때 | "없음" 은 null 로 넣는다 |
 | `IllegalArgumentException` | `SignInOptions.nonce` 가 빈 문자열이거나 512 자를 넘거나 공백 문자를 포함할 때 | 서버가 만든 nonce 를 그대로 넣는다 |
 | `IllegalArgumentException` | `SignInOptions.extensions` 에 같은 클래스가 둘 이상일 때. 서로 다른 구현이 R8 병합으로 걸리지 않도록 jar 가 규칙을 싣는다(0.0.2) | 수단별 확장은 종류마다 하나만 넣는다 |
-| `IllegalArgumentException` | `SocialLoginManager.Builder.callTimeoutMillis` 가 0 이하일 때 | 1 이상을 넣거나 부르지 않는다(상한 없음) |
+| `IllegalArgumentException` | `SocialLoginConfig.Builder.callTimeoutMillis` 가 0 이하일 때 | 1 이상을 넣거나 부르지 않는다(상한 없음) |
 | `IllegalArgumentException` | `SocialLoginResult.Failure` 의 `message` 가 공백뿐이거나 `vendorCode` 가 공백뿐일 때 | Provider 구현을 고친다 |
-| `IllegalArgumentException` | `SocialLoginManager.Builder.register` 에 같은 `ProviderId` 를 두 번 넣을 때(나중 것이 조용히 덮지 않는다) | 수단마다 Provider 하나만 등록한다 |
+| `IllegalArgumentException` | `SocialLoginConfig.Builder.register` 에 같은 `ProviderId` 를 두 번 넣을 때(나중 것이 조용히 덮지 않는다) | 수단마다 Provider 하나만 등록한다 |
 | `IllegalArgumentException` | `SocialLoginErrors.classify`·`failureOf` 에 `CancellationException` 을 넣을 때 | 취소는 분류하지 않고 다시 던진다 |
 
 ### 실패 갈래 (`FailureKind`)
@@ -65,7 +67,7 @@
 
 | 예외 | 언제 |
 |---|---|
-| `IllegalArgumentException` | `KakaoLoginConfig.nativeAppKey` 가 비어 있지 않은데 1..128 자 영숫자가 아닐 때(자리표시자 `YOUR_KAKAO_NATIVE_APP_KEY` 포함) |
+| `IllegalArgumentException` | `KakaoLoginConfig.builder(nativeAppKey).build()` 의 키가 비어 있지 않은데 1..128 자 영숫자가 아닐 때(자리표시자 `YOUR_KAKAO_NATIVE_APP_KEY` 포함) |
 
 ### 실패 신호
 
@@ -163,8 +165,8 @@
 
 | 예외 | 언제 |
 |---|---|
-| `IllegalArgumentException` | 비어 있지 않은 `GoogleLoginConfig.serverClientId` 가 `.apps.googleusercontent.com` 으로 끝나는 공백 없는 28..256 자가 아닐 때 |
-| `IllegalArgumentException` | `GoogleLoginConfig`·`GoogleSignInExtension` 의 모드가 `BOTTOM_SHEET` 가 아닌데 `filterByAuthorizedAccounts`·`autoSelectEnabled` 를 켰을 때(조용히 무시하지 않는다) |
+| `IllegalArgumentException` | `GoogleLoginConfig.builder(serverClientId).build()` 의 비어 있지 않은 ID 가 `.apps.googleusercontent.com` 으로 끝나는 공백 없는 28..256 자가 아닐 때 |
+| `IllegalArgumentException` | `GoogleLoginConfig.Builder.build()`·`GoogleSignInExtension` 의 모드가 `BOTTOM_SHEET` 가 아닌데 `filterByAuthorizedAccounts`·`autoSelectEnabled` 를 켰을 때(조용히 무시하지 않는다) |
 | `IllegalArgumentException` | `GoogleLogin.unlink(provider, accountEmail)` 에 `GoogleLogin.provider` 로 만들지 않은 Provider 를 넘기거나 `accountEmail` 이 공백뿐일 때(0.1.0). 메시지에 이메일 값은 넣지 않는다 |
 
 ### 실패 신호 — 공통

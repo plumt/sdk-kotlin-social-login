@@ -57,7 +57,7 @@ class SocialLoginManagerTest {
     private val google = FakeProvider(ProviderId.GOOGLE, capabilities = setOf(Capability.SIGN_OUT))
 
     private fun manager(policy: ConcurrencyPolicy = ConcurrencyPolicy.REJECT): SocialLoginManager<String> =
-        SocialLoginManager.builder<String>().register(kakao).register(google).concurrencyPolicy(policy).build()
+        SocialLoginManager.create(SocialLoginConfig.builder<String>().register(kakao).register(google).concurrencyPolicy(policy).build())
 
     @Test
     fun `등록 순서·등록 여부·지원 동작`() {
@@ -73,7 +73,7 @@ class SocialLoginManagerTest {
     @Test
     fun `같은 수단을 두 번 등록하면 거절`() {
         val e = assertThrows(IllegalArgumentException::class.java) {
-            SocialLoginManager.builder<String>().register(kakao).register(FakeProvider(ProviderId.KAKAO))
+            SocialLoginConfig.builder<String>().register(kakao).register(FakeProvider(ProviderId.KAKAO))
         }
         assertTrue(e.message!!.contains("kakao"))
         assertTrue(e.message!!.contains("[kakao]"))
@@ -81,16 +81,16 @@ class SocialLoginManagerTest {
 
     @Test
     fun `build 뒤 조립기를 바꿔도 이미 만든 Manager 는 그대로다`() {
-        val builder = SocialLoginManager.builder<String>().register(kakao)
-        val m = builder.build()
+        val builder = SocialLoginConfig.builder<String>().register(kakao)
+        val m = SocialLoginManager.create(builder.build())
         builder.register(google)
         assertEquals(listOf(ProviderId.KAKAO), m.providerIds)
-        assertEquals(listOf(ProviderId.KAKAO, ProviderId.GOOGLE), builder.build().providerIds)
+        assertEquals(listOf(ProviderId.KAKAO, ProviderId.GOOGLE), SocialLoginManager.create(builder.build()).providerIds)
     }
 
     @Test
     fun `빈 Manager 는 모든 호출이 PROVIDER_NOT_REGISTERED`() = runTest {
-        val m = SocialLoginManager.builder<String>().build()
+        val m = SocialLoginManager.create(SocialLoginConfig.builder<String>().build())
         assertEquals(emptyList<ProviderId>(), m.providerIds)
         listOf(
             m.signIn(ProviderId.KAKAO, "host"),
@@ -156,7 +156,7 @@ class SocialLoginManagerTest {
 
     @Test
     fun `providerId 가 빈 실패에는 수단을 채운다`() = runTest {
-        kakao.unlinkResult = { SocialLoginResult.Failure(FailureKind.AUTHENTICATION, "m", vendorCode = "V") }
+        kakao.unlinkResult = { SocialLoginResult.Failure(FailureKind.AUTHENTICATION, "m", vendorCode = "V", providerId = null, cause = null) }
         val f = manager().unlink(ProviderId.KAKAO) as SocialLoginResult.Failure
         assertEquals(ProviderId.KAKAO, f.providerId)
         assertEquals(FailureKind.AUTHENTICATION, f.kind)
@@ -338,7 +338,7 @@ class SocialLoginManagerTest {
             override suspend fun signIn(host: Any, options: SignInOptions): SocialLoginResult<SocialAccount> =
                 SocialLoginResult.Success(SocialAccount(id, SocialToken(null, host.toString())))
         }
-        val m: SocialLoginManager<String> = SocialLoginManager.builder<String>().register(anyHost).build()
+        val m: SocialLoginManager<String> = SocialLoginManager.create(SocialLoginConfig.builder<String>().register(anyHost).build())
         val acc = (m.signIn(ProviderId("apple"), "h") as SocialLoginResult.Success).value
         assertEquals("h", acc.token.idToken)
         assertEquals(FailureKind.UNSUPPORTED, (m.signOut(ProviderId("apple")) as SocialLoginResult.Failure).kind)
