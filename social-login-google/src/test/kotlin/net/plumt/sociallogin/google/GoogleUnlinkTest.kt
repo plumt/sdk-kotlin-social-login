@@ -151,6 +151,71 @@ class GoogleUnlinkTest {
         assertEquals(FailureKind.CONFIGURATION, p.unlink().failure().kind)
     }
 
+    // 0.1.1 — 동의 이력이 없는 계정의 철회. 실기기의 Google Play 서비스가 낸 상태 그대로다
+    private fun nothingToRevoke() = ApiException(Status(GoogleErrors.STATUS_DEVELOPER_ERROR, "[28470] No access token was returned"))
+
+    @Test
+    fun `동의 이력이 없어 철회할 권한이 없으면 성공이고 상태를 지운다`() = runTest(dispatcher) {
+        val p = provider().signedIn()
+        gateway.revokeAuthorization = { throw nothingToRevoke() }
+        assertEquals(SocialLoginResult.Success(Unit), p.unlink())
+        assertEquals(listOf("revokeAuthorization", "revoke", "clear"), gateway.calls)
+        // 계정도 잊는다 — 다시 부르면 Google 을 부르지 않은 NOT_SIGNED_IN
+        gateway.calls.clear()
+        assertEquals(GoogleLoginProvider.VENDOR_NO_ACCOUNT, p.unlink().failure().vendorCode)
+        assertTrue(gateway.calls.isEmpty())
+    }
+
+    @Test
+    fun `이메일로 철회할 때도 동의 이력이 없으면 성공이다`() = runTest(dispatcher) {
+        val restarted: SocialLoginProvider<Activity> = provider(GoogleSignInMode.BOTTOM_SHEET)
+        gateway.revokeAuthorization = { throw nothingToRevoke() }
+        gateway.revoke = { throw apiError(GoogleErrors.STATUS_SIGN_IN_REQUIRED) }
+        assertEquals(SocialLoginResult.Success(Unit), GoogleLogin.unlink(restarted, "saved@example.com"))
+        assertEquals(listOf("revokeAuthorization", "revoke", "clear"), gateway.calls)
+    }
+
+    @Test
+    fun `메시지가 다른 상태 코드 10 은 그대로 CONFIGURATION 이다`() = runTest(dispatcher) {
+        val p = provider().signedIn()
+        gateway.revokeAuthorization = { throw ApiException(Status(GoogleErrors.STATUS_DEVELOPER_ERROR, "[10] DEVELOPER_ERROR")) }
+        val f = p.unlink().failure()
+        assertEquals(FailureKind.CONFIGURATION, f.kind)
+        assertEquals("ApiException(10)", f.vendorCode)
+        // 주 경로가 실패했으니 보조 정리를 하지 않고 계정을 기억한다
+        assertEquals(listOf("revokeAuthorization"), gateway.calls)
+        gateway.revokeAuthorization = {}
+        assertEquals(SocialLoginResult.Success(Unit), p.unlink())
+    }
+
+    @Test
+    fun `같은 메시지라도 상태 코드가 10 이 아니면 성공으로 바꾸지 않는다`() = runTest(dispatcher) {
+        val p = provider().signedIn()
+        gateway.revokeAuthorization = {
+            throw ApiException(Status(GoogleErrors.STATUS_NETWORK_ERROR, "[28470] No access token was returned"))
+        }
+        assertEquals(FailureKind.NETWORK, p.unlink().failure().kind)
+        gateway.revokeAuthorization = { throw IOException("[28470] No access token was returned") }
+        assertEquals(FailureKind.NETWORK, p.unlink().failure().kind)
+    }
+
+    @Test
+    fun `기본 모드의 Google Sign-In 철회는 이 판별을 쓰지 않는다`() = runTest(dispatcher) {
+        val p = provider(GoogleSignInMode.LEGACY_GOOGLE_SIGN_IN).signedIn()
+        gateway.revoke = { throw nothingToRevoke() }
+        assertEquals(FailureKind.CONFIGURATION, p.unlink().failure().kind)
+    }
+
+    @Test
+    fun `isNothingToRevoke — 상태 코드 10 과 철회할 토큰 없음 메시지가 함께일 때만`() {
+        assertTrue(GoogleErrors.isNothingToRevoke(nothingToRevoke()))
+        assertTrue(GoogleErrors.isNothingToRevoke(ApiException(Status(10, "No access token was returned"))))
+        assertFalse(GoogleErrors.isNothingToRevoke(apiError(GoogleErrors.STATUS_DEVELOPER_ERROR)))
+        assertFalse(GoogleErrors.isNothingToRevoke(ApiException(Status(8, "[28470] No access token was returned"))))
+        assertFalse(GoogleErrors.isNothingToRevoke(IllegalStateException("[28470] No access token was returned")))
+        assertFalse(GoogleErrors.isNothingToRevoke(CancellationException("[28470]")))
+    }
+
     @Test
     fun `Google Play 서비스가 revokeAccess 를 모르면 UNSUPPORTED`() = runTest(dispatcher) {
         val p = provider().signedIn()

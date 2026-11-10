@@ -159,6 +159,7 @@ internal class GoogleLoginProvider(
      * - Google Sign-In: `GoogleSignIn.revokeAccess`. 로그인한 계정이 없으면 `ApiException(4)` → [FailureKind.NOT_SIGNED_IN].
      * - Credential Manager: `AuthorizationClient.revokeAccess(계정)`. 계정은 [explicitEmail], 없으면 마지막 로그인의 이메일.
      *   둘 다 없으면 Google 을 부르지 않고 [FailureKind.NOT_SIGNED_IN] + [VENDOR_NO_ACCOUNT].
+     *   그 계정의 동의 이력이 없어 철회할 권한이 없으면 성공이다(0.1.1, [revokeAuthorizationIfGranted]).
      *
      * 주 경로의 실패만 결과로 알린다. 다른 경로의 철회(계정을 알 때)와 Credential Manager 상태 지우기는 보조로 해 보고
      * 실패를 결과에 넣지 않는다. 성공하면 기억한 계정을 잊는다.
@@ -179,7 +180,7 @@ internal class GoogleLoginProvider(
         }
         return call("unlink") {
             if (viaCredentialManager) {
-                gateway.revokeAuthorization(checkNotNull(email))
+                revokeAuthorizationIfGranted(checkNotNull(email))
                 bestEffort { gateway.legacyRevokeAccess(config.serverClientId) }
             } else {
                 gateway.legacyRevokeAccess(config.serverClientId)
@@ -189,6 +190,18 @@ internal class GoogleLoginProvider(
             bestEffort { gateway.clearCredentialState() }
             lastSignIn = null
             SocialLoginResult.Success(Unit)
+        }
+    }
+
+    /**
+     * Credential Manager 경로의 주 철회. 그 계정이 이 앱에 준 권한이 없으면(동의 이력 없음) 철회할 것이 없으므로 성공으로 보고
+     * 이어서 기기 상태를 지운다. 판별은 [GoogleErrors.isNothingToRevoke] 하나뿐이고 그 밖의 실패는 그대로 던진다.
+     */
+    private suspend fun revokeAuthorizationIfGranted(email: String) {
+        try {
+            gateway.revokeAuthorization(email)
+        } catch (e: Exception) {
+            if (!GoogleErrors.isNothingToRevoke(e)) throw e
         }
     }
 

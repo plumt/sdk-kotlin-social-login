@@ -88,6 +88,15 @@
 
 ### [Unreleased]
 
+### [0.1.1] - 미발행
+
+#### 고침
+- **Credential Manager 모드의 연결 해제가 동의 이력이 없는 계정에서 실패하던 문제.** 그 계정이 이 앱에 OAuth 권한을 준 적이 없으면(Credential Manager 로그인은 ID 토큰만 받는다) `AuthorizationClient.revokeAccess` 가 `ApiException(10)` + "[28470] No access token was returned" 로 끝나 `CONFIGURATION` 이었다. 이제 철회할 것이 없다고 보고 기기 로그인 상태를 지운 뒤 `Success` 다. `unlink()`·`GoogleLogin.unlink(provider, accountEmail)`·`SocialLoginManager.unlink` 모두 해당한다
+  - 판별은 상태 코드 10 과 그 메시지를 함께 본다. 메시지가 다른 10(웹 클라이언트 ID·SHA-1 설정 오류)은 그대로 `CONFIGURATION` 이고, 7·15 `NETWORK` 등 다른 분류도 그대로다. 기본 모드(`LEGACY_GOOGLE_SIGN_IN`)의 철회는 바뀌지 않았다
+
+#### 호환성
+- 바이너리 호환. `.api` 변화 없음
+
 ### [0.1.0] - 2026-11-08
 
 #### 추가

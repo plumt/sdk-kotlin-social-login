@@ -214,6 +214,7 @@
 | `UNSUPPORTED` | `GetCredentialUnsupportedException`·`ClearCredentialUnsupportedException` — 기기가 Credential Manager 를 지원하지 않음 |
 | `NOT_SIGNED_IN` (vendorCode `NoAccountToRevoke`) | 연결 해제(0.1.0)인데 철회할 계정을 모름 — 이 Provider 인스턴스로 로그인하지 않았거나(프로세스 재시작 포함) 로그아웃·연결 해제 뒤다. Google 을 부르지 않는다. 로그인 때 받은 이메일을 `GoogleLogin.unlink(provider, accountEmail)` 로 넘긴다 |
 | 위 `ApiException` 표 | 연결 해제(0.1.0)의 `AuthorizationClient.revokeAccess` 실패 — 7·15 `NETWORK`(재시도 가능), 4 `NOT_SIGNED_IN`, 10 `CONFIGURATION`, 17 `UNSUPPORTED` 등 |
+| `Success` (실패 아님) | 연결 해제(0.1.1) — `revokeAccess` 가 `ApiException(10)` + "[28470] No access token was returned" 로 끝남. 그 계정이 이 앱에 동의한 이력이 없어 철회할 권한이 없다는 뜻이라 기기 상태를 지우고 성공으로 돌려준다. 메시지가 다른 10 은 `CONFIGURATION` 이다 |
 | `UNSUPPORTED` (vendorCode `UnsupportedApiCallException`) | 연결 해제(0.1.0) — 기기의 Google Play 서비스가 `revokeAccess` 를 아직 모름. Google Play 서비스 업데이트를 안내한다 |
 | (재시도) | `BOTTOM_SHEET` 로그인이 `TransactionTooLargeException` 으로 실패 — 버튼 흐름으로 한 번만 다시 시도한다. 결과는 재시도의 결과이고 첫 예외는 `cause.suppressed` 에 붙는다 |
 | `UNKNOWN` | `GetCredentialUnknownException`·`GetCredentialCustomException`·그 밖 하위 타입, Google 이 아닌 자격 증명 타입, 깨진 데이터(`GoogleIdTokenParsingException`), 공백뿐인 ID 토큰 |

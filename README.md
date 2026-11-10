@@ -49,7 +49,7 @@ dependencyResolutionManagement {
 dependencies {
     implementation("net.plumt.sociallogin:social-login-kakao:0.0.2")
     implementation("net.plumt.sociallogin:social-login-naver:0.0.2")
-    implementation("net.plumt.sociallogin:social-login-google:0.1.0")
+    implementation("net.plumt.sociallogin:social-login-google:0.1.1")
 }
 ```
 
@@ -256,6 +256,8 @@ Binder 데이터가 한도(약 1MB)를 넘어 계정 선택 시트가 뜨지 못
 
 - `AuthorizationClient.revokeAccess` 는 `play-services-auth` 21.4.0 에 처음 들어왔고 기기의 Google Play 서비스도 이 기능을
   알아야 한다. 오래된 Play 서비스면 `UNSUPPORTED`(vendorCode `UnsupportedApiCallException` 또는 `ApiException(17)`)이다.
+- 그 계정이 이 앱에 동의한 이력이 없으면 철회할 것이 없어 기기 상태만 지우고 `Success` 를 돌려준다(0.1.1). Google 계정의
+  연결된 앱 목록에 무엇이 남는지는 Google 정책에 따른다.
 - 철회할 계정은 이메일로 지정한다. 기기에서 그 계정이 지워졌으면 Google 이 거절할 수 있다(`ApiException` 상태 코드는 확인하지
   못했다 — 표에 없는 코드는 `UNKNOWN` 에 vendorCode 로 남는다). 그때는 사용자가 Google 계정 설정의
   "서드 파티 앱 및 서비스" 에서 끊거나, 앱 서버가 처리한다.

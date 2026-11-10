@@ -132,6 +132,21 @@ internal object GoogleErrors {
         return failure(kindOfStatus(code), operation, "ApiException($code)", error, hint)
     }
 
+    /**
+     * `AuthorizationClient.revokeAccess` 가 철회할 접근 권한이 없어 실패했는지. 그 계정이 이 앱에 OAuth 동의를 한 적이 없으면
+     * (Credential Manager 로그인은 ID 토큰만 받는다) Google Play 서비스가 토큰을 얻지 못하고
+     * `ApiException(10)` + 메시지 "[28470] No access token was returned" 로 끝낸다(Google Play 서비스 26.43 실기기 확인).
+     * 같은 상태 코드 10 의 설정 오류와 가르기 위해 코드와 메시지를 함께 본다.
+     */
+    fun isNothingToRevoke(error: Throwable): Boolean {
+        if (error !is ApiException || error.statusCode != STATUS_DEVELOPER_ERROR) return false
+        val message = error.message.orEmpty()
+        return message.contains(NO_ACCESS_TOKEN_CODE) || message.contains(NO_ACCESS_TOKEN_MESSAGE)
+    }
+
+    private const val NO_ACCESS_TOKEN_CODE = "[28470]"
+    private const val NO_ACCESS_TOKEN_MESSAGE = "No access token was returned"
+
     fun kindOfStatus(statusCode: Int): FailureKind = when (statusCode) {
         STATUS_SIGN_IN_CANCELLED -> FailureKind.UNKNOWN // apiException 이 먼저 Cancelled 로 바꾼다
         STATUS_SIGN_IN_CURRENTLY_IN_PROGRESS -> FailureKind.BUSY

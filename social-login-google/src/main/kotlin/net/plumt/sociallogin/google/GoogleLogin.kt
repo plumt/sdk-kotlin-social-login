@@ -46,7 +46,8 @@ public object GoogleLogin {
 
     /**
      * [accountEmail] 계정의 Google 연결을 끊는다(회원 탈퇴 때, 0.1.0). Google 서버에서 이 앱에 준 권한을 철회하고 기기
-     * 로그인 상태를 지운다. 화면을 띄우지 않는다.
+     * 로그인 상태를 지운다. 화면을 띄우지 않는다. Credential Manager 모드에서 그 계정이 이 앱에 권한을 준 적이 없으면
+     * (동의 이력 없음) 철회할 것이 없으므로 기기 상태만 지우고 [net.plumt.sociallogin.SocialLoginResult.Success] 다(0.1.1).
      *
      * `SocialLoginManager.unlink(ProviderId.GOOGLE)`(= 인자 없는 `unlink()`)는 그 Provider 로 **이 프로세스에서** 로그인한
      * 계정만 안다. Credential Manager 모드(`BUTTON`·`BOTTOM_SHEET`)에서 앱이 다시 떠 로그인 없이 탈퇴하면 철회할 계정을
